@@ -5,6 +5,7 @@ import { TypingIndicator } from '../../atoms/TypingIndicator/TypingIndicator';
 import { MessageBubble } from '../../molecules/MessageBubble/MessageBubble';
 import { FileMessage } from '../../molecules/FileMessage/FileMessage';
 import { Button } from '../../atoms/Button/Button';
+import { Header } from '../../organisms/Header/Header';
 import { useSocket } from '../../../hooks/useSocket';
 import { useChat } from '../../../hooks/useChat';
 import { User, Conversation, Message } from '../../../services/api';
@@ -161,8 +162,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
   if (!currentUser) return null;
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="flex h-screen">
+    <div className="h-screen flex flex-col">
+      <Header currentUser={currentUser} onLogout={handleLogout} />
+      
+      <div className="flex flex-1 overflow-hidden">
         <UserList
           users={users}
           conversations={conversations}
@@ -197,13 +200,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
                         Añadir Participante
                       </Button>
                     )}
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={handleLogout}
-                    >
-                      Salir
-                    </Button>
                   </div>
                 </div>
               </div>
@@ -215,16 +211,17 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
                 </div>
               </div>
 
-              <TypingIndicator
-                isVisible={typingUsers.length > 0}
-                typingUsers={typingUsers}
-              />
-
-              <MessageInput
-                onSendMessage={sendMessage}
-                onStartTyping={startTyping}
-                onStopTyping={stopTyping}
-              />
+              <div className="bg-white border-t border-gray-200">
+                <TypingIndicator
+                  isVisible={typingUsers.length > 0}
+                  typingUsers={typingUsers}
+                />
+                <MessageInput
+                  onSendMessage={sendMessage}
+                  onStartTyping={startTyping}
+                  onStopTyping={stopTyping}
+                />
+              </div>
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center">

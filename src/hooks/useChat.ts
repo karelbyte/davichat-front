@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiService, User, Conversation, Message } from '../services/api';
 import { SocketService } from '../services/socket';
 
@@ -11,6 +11,12 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
   const [groupUnreadCounts, setGroupUnreadCounts] = useState<Record<string, number>>({});
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
+
+  const currentConversationRef = useRef<Conversation | null>(null);
+
+  useEffect(() => {
+    currentConversationRef.current = currentConversation;
+  }, [currentConversation]);
 
   const loadUsersAndConversations = useCallback(async () => {
     if (!currentUser) return;
@@ -50,19 +56,17 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       });
 
       setUnreadCounts(prev => ({ ...prev, [otherUserId]: 0 }));
-      joinConversation(conversation);
+      setCurrentConversation(conversation);
+      setTypingUsers(new Set());
+      loadMessages(conversation.id);
     } catch (error) {
       console.error('Error creating private chat:', error);
     }
-  }, [currentUser]);
+  }, [currentUser, loadMessages]);
 
   const joinConversation = useCallback((conversation: Conversation) => {
     setCurrentConversation(conversation);
     setTypingUsers(new Set());
-    
-    if (socketService) {
-      socketService.joinRoom(conversation.id, currentUser?.id || '');
-    }
 
     loadMessages(conversation.id);
 
@@ -81,11 +85,11 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     if (conversation.type === 'group') {
       setGroupUnreadCounts(prev => ({ ...prev, [conversation.id]: 0 }));
     }
-  }, [currentUser, socketService, loadMessages]);
+  }, [currentUser, loadMessages]);
 
   const sendMessage = useCallback((content: string, messageType: 'text' | 'file' | 'audio' = 'text') => {
     if (!currentConversation || !currentUser || !socketService) return;
-
+    
     socketService.sendMessage(currentConversation.id, currentUser.id, content, messageType);
   }, [currentConversation, currentUser, socketService]);
 
@@ -122,7 +126,7 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     if (!socketService) return;
 
     socketService.on('message_received', (message) => {
-      if (currentConversation && message.conversationId === currentConversation.id) {
+      if (currentConversationRef.current && message.conversationId === currentConversationRef.current.id) {
         setMessages(prev => [...prev, message]);
       }
     });
@@ -136,7 +140,7 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     });
 
     socketService.on('unread_message_private', (data) => {
-      if (currentConversation && currentConversation.id === data.conversationId) return;
+      if (currentConversationRef.current && currentConversationRef.current.id === data.conversationId) return;
       setUnreadCounts(prev => ({
         ...prev,
         [data.senderId]: (prev[data.senderId] || 0) + 1
@@ -144,7 +148,7 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     });
 
     socketService.on('unread_message_group', (data) => {
-      if (currentConversation && currentConversation.id === data.conversationId) return;
+      if (currentConversationRef.current && currentConversationRef.current.id === data.conversationId) return;
       setGroupUnreadCounts(prev => ({
         ...prev,
         [data.conversationId]: (prev[data.conversationId] || 0) + 1
@@ -152,7 +156,7 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     });
 
     socketService.on('typing_indicator', (data) => {
-      if (!currentConversation || data.conversationId !== currentConversation.id) return;
+      if (!currentConversationRef.current || data.conversationId !== currentConversationRef.current.id) return;
       if (data.userId === currentUser?.id) return;
 
       setTypingUsers(prev => {
@@ -173,7 +177,13 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     socketService.on('user_added_to_group', () => {
       loadUsersAndConversations();
     });
-  }, [socketService, currentConversation, currentUser, loadUsersAndConversations]);
+  }, [socketService, loadUsersAndConversations]);
+
+  useEffect(() => {
+    if (!socketService || !currentConversation) return;
+    
+    socketService.joinRoom(currentConversation.id, currentUser?.id || '');
+  }, [socketService, currentConversation, currentUser]);
 
   useEffect(() => {
     loadUsersAndConversations();

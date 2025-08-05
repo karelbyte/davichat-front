@@ -5,6 +5,7 @@ interface InputProps {
   placeholder?: string;
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onKeyPress?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   required?: boolean;
   disabled?: boolean;
   className?: string;
@@ -18,6 +19,7 @@ export const Input: React.FC<InputProps> = ({
   placeholder,
   value,
   onChange,
+  onKeyPress,
   required = false,
   disabled = false,
   className = '',
@@ -25,7 +27,7 @@ export const Input: React.FC<InputProps> = ({
   id,
   name
 }) => {
-  const baseClasses = 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
+  const baseClasses = 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black';
   const disabledClasses = disabled ? 'opacity-50 cursor-not-allowed' : '';
   
   return (
@@ -34,6 +36,7 @@ export const Input: React.FC<InputProps> = ({
       placeholder={placeholder}
       value={value}
       onChange={onChange}
+      onKeyPress={onKeyPress}
       required={required}
       disabled={disabled}
       className={`${baseClasses} ${disabledClasses} ${className}`}

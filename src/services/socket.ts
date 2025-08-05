@@ -36,6 +36,14 @@ export class SocketService {
       this.eventListeners.disconnect?.();
     });
 
+    this.socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+    });
+
+    this.socket.on('error', (error) => {
+      console.error('Socket error:', error);
+    });
+
     this.socket.on('message_received', (message) => {
       this.eventListeners.message_received?.(message);
     });
