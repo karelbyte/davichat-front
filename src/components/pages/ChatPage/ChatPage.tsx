@@ -5,10 +5,12 @@ import { TypingIndicator } from '../../atoms/TypingIndicator/TypingIndicator';
 import { MessageBubble } from '../../molecules/MessageBubble/MessageBubble';
 import { FileMessage } from '../../molecules/FileMessage/FileMessage';
 import { Button } from '../../atoms/Button/Button';
+import { IconButton } from '../../atoms/IconButton/IconButton';
 import { Header } from '../../organisms/Header/Header';
 import { useSocket } from '../../../hooks/useSocket';
 import { useChat } from '../../../hooks/useChat';
 import { User, Conversation, Message } from '../../../services/api';
+import { AiOutlineUserAdd } from "react-icons/ai";
 
 interface ChatPageProps {
   currentUser?: User;
@@ -35,7 +37,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
     createGroup,
     addUserToGroup,
     loadUsersAndConversations
-  } = useChat(currentUser, socketService);
+  } = useChat(currentUser || null, socketService);
 
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [showAddParticipantsModal, setShowAddParticipantsModal] = useState(false);
@@ -172,6 +174,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
           unreadCounts={unreadCounts}
           groupUnreadCounts={groupUnreadCounts}
           currentUserId={currentUser.id}
+          currentConversation={currentConversation}
           onUserClick={handleUserClick}
           onGroupClick={handleGroupClick}
           onCreateGroup={handleCreateGroup}
@@ -184,18 +187,23 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-800">
-                      {currentConversation.name || 'Chat privado'}
+                      {currentConversation.type === 'private' 
+                        ? `Conversando con ${users.find(u => 
+                            u.id !== currentUser.id && 
+                            currentConversation.participants.includes(u.id)
+                          )?.name || 'Usuario'}`
+                        : `Conversando en el grupo ${currentConversation.name || 'Sin nombre'}`
+                      }
                     </h3>
                   </div>
                   <div className="flex space-x-2">
                     {currentConversation.type === 'group' && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
+                      <IconButton
                         onClick={() => setShowAddParticipantsModal(true)}
+                        className="text-gray-600 hover:text-gray-800"
                       >
-                        Añadir Participante
-                      </Button>
+                        <AiOutlineUserAdd className="w-5 h-5" />
+                      </IconButton>
                     )}
                   </div>
                 </div>

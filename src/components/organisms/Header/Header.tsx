@@ -25,10 +25,11 @@ export const Header: React.FC<HeaderProps> = ({ currentUser, onLogout }) => {
   }, []);
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+    <header className="bg-white border-b border-gray-200 px-4 py-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center">
-          <h1 className="text-xl font-bold text-gray-800">
+          <img src="/logo.png" alt="logo" className="w-12 h-8" />
+          <h1 className="text-lg font-semibold text-gray-800">
             Davivienda Chat Interno
           </h1>
         </div>
@@ -36,27 +37,9 @@ export const Header: React.FC<HeaderProps> = ({ currentUser, onLogout }) => {
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="flex items-center space-x-3 p-2 rounded-full hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
           >
             <Avatar name={currentUser.name} size="md" />
-            <span className="text-sm font-medium text-gray-700">
-              {currentUser.name}
-            </span>
-            <svg
-              className={`w-4 h-4 text-gray-500 transition-transform ${
-                isMenuOpen ? 'rotate-180' : ''
-              }`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
           </button>
 
           {isMenuOpen && (

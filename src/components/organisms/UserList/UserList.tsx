@@ -11,6 +11,7 @@ interface UserListProps {
   unreadCounts: Record<string, number>;
   groupUnreadCounts: Record<string, number>;
   currentUserId: string;
+  currentConversation: Conversation | null;
   onUserClick: (userId: string) => void;
   onGroupClick: (conversation: Conversation) => void;
   onCreateGroup: () => void;
@@ -23,6 +24,7 @@ export const UserList: React.FC<UserListProps> = ({
   unreadCounts,
   groupUnreadCounts,
   currentUserId,
+  currentConversation,
   onUserClick,
   onGroupClick,
   onCreateGroup,
@@ -30,6 +32,15 @@ export const UserList: React.FC<UserListProps> = ({
 }) => {
   const filteredUsers = users.filter(user => user.id !== currentUserId);
   const groups = conversations.filter(conv => conv.type === 'group');
+
+  const isUserSelected = (userId: string) => {
+    return currentConversation?.type === 'private' && 
+           currentConversation.participants.includes(userId);
+  };
+
+  const isGroupSelected = (groupId: string) => {
+    return currentConversation?.id === groupId;
+  };
 
   return (
     <div className={`w-80 bg-white border-r flex flex-col ${className}`}>
@@ -56,6 +67,7 @@ export const UserList: React.FC<UserListProps> = ({
                   key={user.id}
                   user={user}
                   unreadCount={unreadCounts[user.id] || 0}
+                  isSelected={isUserSelected(user.id)}
                   onClick={() => onUserClick(user.id)}
                 />
               ))}
@@ -65,6 +77,7 @@ export const UserList: React.FC<UserListProps> = ({
                   key={group.id}
                   group={group}
                   unreadCount={groupUnreadCounts[group.id] || 0}
+                  isSelected={isGroupSelected(group.id)}
                   onClick={() => onGroupClick(group)}
                 />
               ))}

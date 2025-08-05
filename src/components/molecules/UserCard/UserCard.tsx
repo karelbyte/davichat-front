@@ -12,6 +12,7 @@ interface User {
 interface UserCardProps {
   user: User;
   unreadCount?: number;
+  isSelected?: boolean;
   onClick?: () => void;
   className?: string;
 }
@@ -19,12 +20,15 @@ interface UserCardProps {
 export const UserCard: React.FC<UserCardProps> = ({
   user,
   unreadCount = 0,
+  isSelected = false,
   onClick,
   className = ''
 }) => {
   return (
     <div 
-      className={`p-3 cursor-pointer hover:bg-gray-50 transition-colors mb-2 ${className}`}
+      className={`p-3 cursor-pointer hover:bg-gray-50 transition-colors mb-2 ${
+        isSelected ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+      } ${className}`}
       onClick={onClick}
     >
       <div className="flex items-center justify-between">
