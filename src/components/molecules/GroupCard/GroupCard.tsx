@@ -1,9 +1,10 @@
 import React from 'react';
 import { Badge } from '../../atoms/Badge/Badge';
+import { HiUserGroup } from "react-icons/hi2";
 
 interface Group {
   id: string;
-  name: string;
+  name?: string;
   description?: string;
   type: 'group';
 }
@@ -23,13 +24,16 @@ export const GroupCard: React.FC<GroupCardProps> = ({
 }) => {
   return (
     <div 
-      className={`p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors border-blue-200 bg-blue-50 mb-2 ${className}`}
+      className={`p-3 cursor-pointer hover:bg-gray-50 transition-colors mb-2 ${className}`}
       onClick={onClick}
     >
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
+            <HiUserGroup/>
+          </div>
           <div>
-            <div className="font-medium text-gray-800">👥 {group.name}</div>
+            <div className="font-medium text-gray-800">{group.name || 'Grupo sin nombre'}</div>
             <div className="text-sm text-gray-600">{group.description || 'Grupo'}</div>
           </div>
           <Badge count={unreadCount} />

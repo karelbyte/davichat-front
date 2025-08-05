@@ -180,15 +180,12 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
         <div className="flex-1 flex flex-col">
           {currentConversation ? (
             <>
-              <div className="bg-white shadow-sm border-b border-gray-200 p-4">
+              <div className="bg-white border-b border-gray-200 p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-800">
                       {currentConversation.name || 'Chat privado'}
                     </h3>
-                    <p className="text-sm text-gray-600">
-                      {currentConversation.type === 'group' ? 'Grupo' : 'Conversación privada'}
-                    </p>
                   </div>
                   <div className="flex space-x-2">
                     {currentConversation.type === 'group' && (

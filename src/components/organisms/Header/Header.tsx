@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User } from '../../../services/api';
+import { Avatar } from '../../atoms/Avatar/Avatar';
 
 interface HeaderProps {
   currentUser: User;
@@ -23,15 +24,6 @@ export const Header: React.FC<HeaderProps> = ({ currentUser, onLogout }) => {
     };
   }, []);
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -46,9 +38,7 @@ export const Header: React.FC<HeaderProps> = ({ currentUser, onLogout }) => {
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="flex items-center space-x-3 p-2 rounded-full hover:bg-gray-100 transition-colors"
           >
-            <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
-              {getInitials(currentUser.name)}
-            </div>
+            <Avatar name={currentUser.name} size="md" />
             <span className="text-sm font-medium text-gray-700">
               {currentUser.name}
             </span>

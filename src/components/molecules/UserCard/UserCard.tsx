@@ -1,5 +1,6 @@
 import React from 'react';
 import { Badge } from '../../atoms/Badge/Badge';
+import { Avatar } from '../../atoms/Avatar/Avatar';
 
 interface User {
   id: string;
@@ -23,24 +24,23 @@ export const UserCard: React.FC<UserCardProps> = ({
 }) => {
   return (
     <div 
-      className={`p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
-        user.isOnline ? 'border-green-200 bg-green-50' : 'border-gray-200'
-      } mb-2 ${className}`}
+      className={`p-3 cursor-pointer hover:bg-gray-50 transition-colors mb-2 ${className}`}
       onClick={onClick}
     >
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <div>
-            <div className="font-medium text-gray-800">👤 {user.name}</div>
-            <div className="text-sm text-gray-600">{user.email}</div>
+        <div className="flex items-center space-x-3">
+          <div className="relative">
+            <Avatar name={user.name} size="md" />
+            <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${
+              user.isOnline ? 'bg-green-500' : 'bg-gray-400'
+            }`}></div>
           </div>
-          <Badge count={unreadCount} />
+          <div>
+            <div className="font-medium text-gray-800">{user.name}</div>
+            <div className="text-xs text-gray-600">{user.email}</div>
+          </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <div className={`w-2 h-2 rounded-full ${
-            user.isOnline ? 'bg-green-500' : 'bg-gray-400'
-          }`}></div>
-        </div>
+        <Badge count={unreadCount} />
       </div>
     </div>
   );

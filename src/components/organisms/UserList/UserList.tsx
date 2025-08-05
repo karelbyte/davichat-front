@@ -1,7 +1,8 @@
 import React from 'react';
 import { UserCard } from '../../molecules/UserCard/UserCard';
 import { GroupCard } from '../../molecules/GroupCard/GroupCard';
-import { Button } from '../../atoms/Button/Button';
+import { IconButton } from '../../atoms/IconButton/IconButton';
+import { AiOutlineUsergroupAdd } from "react-icons/ai";
 import { User, Conversation } from '../../../services/api';
 
 interface UserListProps {
@@ -31,14 +32,20 @@ export const UserList: React.FC<UserListProps> = ({
   const groups = conversations.filter(conv => conv.type === 'group');
 
   return (
-    <div className={`w-80 bg-white shadow-lg flex flex-col ${className}`}>
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-800">Chat API</h2>
+    <div className={`w-80 bg-white border-r flex flex-col ${className}`}>
+      <div className="p-2 border-gray-200">
+        <div className="flex items-center justify-end">
+          <IconButton
+            size="md"
+            onClick={onCreateGroup}
+            className="text-gray-600 hover:text-gray-800"
+          >
+            <AiOutlineUsergroupAdd className="w-5 h-5" />
+          </IconButton>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto">
         <div className="space-y-2">
           {filteredUsers.length === 0 && groups.length === 0 ? (
             <div className="text-sm text-gray-500">Cargando usuarios y grupos...</div>
@@ -64,16 +71,6 @@ export const UserList: React.FC<UserListProps> = ({
             </>
           )}
         </div>
-      </div>
-
-      <div className="p-4 border-t border-gray-200">
-        <Button
-          variant="success"
-          onClick={onCreateGroup}
-          className="w-full"
-        >
-          Crear Grupo
-        </Button>
       </div>
     </div>
   );

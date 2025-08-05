@@ -133,7 +133,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   }, []);
 
   return (
-    <div className={`bg-white border-t border-gray-200 p-4 ${className}`}>
+    <div className={`bg-whit border-gray-200 p-4 ${className}`}>
       <div className="flex space-x-2">
         <Input
           type="text"
