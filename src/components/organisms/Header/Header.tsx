@@ -29,7 +29,7 @@ export const Header: React.FC<HeaderProps> = ({ currentUser, onLogout }) => {
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           <img src="/logo.png" alt="logo" className="w-12 h-8" />
-          <h1 className="text-lg font-semibold text-gray-800">
+          <h1 className="text-lg text-gray-600">
             Davivienda Chat Interno
           </h1>
         </div>

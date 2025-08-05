@@ -183,10 +183,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
         <div className="flex-1 flex flex-col">
           {currentConversation ? (
             <>
-              <div className="bg-white border-b border-gray-200 p-4">
+              <div className="bg-white border-b border-gray-200 p-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800">
+                    <h3 className="text-lg text-gray-600">
                       {currentConversation.type === 'private' 
                         ? `Conversando con ${users.find(u => 
                             u.id !== currentUser.id && 
