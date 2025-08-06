@@ -1,5 +1,6 @@
 import React from 'react';
 import { Message } from '../../../services/types';
+import { FormattedText } from '../../atoms/FormattedText/FormattedText';
 
 interface MessageBubbleProps {
   message: Message;
@@ -34,7 +35,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
           isOwnMessage ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'
         }`}>
-          <div className="text-sm">{message.content}</div>
+          <div className="text-sm">
+            <FormattedText text={message.content} />
+          </div>
         </div>
       </div>
     </div>

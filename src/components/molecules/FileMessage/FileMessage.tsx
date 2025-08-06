@@ -1,5 +1,5 @@
 import React from 'react';
-
+import { CiSaveDown2 } from "react-icons/ci";
 interface FileData {
   fileUrl: string;
   fileName: string;
@@ -34,11 +34,20 @@ export const FileMessage: React.FC<FileMessageProps> = ({
   if (isImage) {
     return (
       <div className={`mb-2 ${className}`}>
-        <img 
-          src={fileData.fileUrl} 
-          alt={fileData.fileName} 
-          className="max-w-full h-auto rounded"
-        />
+        <div className="relative">
+          <img 
+            src={fileData.fileUrl} 
+            alt={fileData.fileName} 
+            className="max-w-full h-auto rounded"
+          />
+          <a 
+            href={fileData.fileUrl} 
+            target="_blank" 
+            className="absolute top-2 right-2  bg-opacity-50 text-black p-1 rounded hover:bg-opacity-70"
+          >
+            <CiSaveDown2/>
+          </a>
+        </div>
         <div className={`text-xs text-gray-500`}>
           📎 {fileData.fileName} ({fileSize})
         </div>
@@ -71,7 +80,7 @@ export const FileMessage: React.FC<FileMessageProps> = ({
         target="_blank" 
         className="text-blue-500 hover:text-blue-700"
       >
-        📥
+       <CiSaveDown2/>
       </a>
     </div>
   );
