@@ -179,16 +179,39 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
               </div>
 
               <div className="flex-1 overflow-y-auto">
-                <div className="space-y-4 lg:mx-[300px] xl:mx-[400px]">
-                  {messages.map(renderMessage)}
-                  <div ref={messagesEndRef} />
+                <div className="lg:mx-[300px] xl:mx-[400px] h-full">
+                  {messages.length === 0 ? (
+                    <div className="flex items-center justify-center h-full min-h-[400px]">
+                      <div className="text-center">
+                        <h3 className="text-lg font-medium text-gray-600 mb-2">
+                          {currentConversation.type === 'private' 
+                            ? `Este es el inicio de tu conversación con ${users.find(u => 
+                                u.id !== currentUser.id && 
+                                currentConversation.participants.includes(u.id)
+                              )?.name || 'Usuario'}`
+                            : `Este es el inicio de tu conversación con el grupo ${currentConversation.name || 'Sin nombre'}`
+                          }
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          Envía un mensaje para comenzar a chatear
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-12">
+                      {messages.map(renderMessage)}
+                      <div ref={messagesEndRef} />
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="bg-white border-t border-gray-200">
                 <TypingIndicator
                   isVisible={typingUsers.length > 0}
-                  typingUsers={typingUsers}
+                  typingUsers={typingUsers.map(userId => 
+                    users.find(u => u.id === userId)?.name || 'Usuario'
+                  )}
                 />
                 <MessageInput
                   onSendMessage={sendMessage}

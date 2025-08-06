@@ -1,7 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Button } from '../../atoms/Button/Button';
+import { AiOutlinePaperClip } from "react-icons/ai";
 import { Input } from '../../atoms/Input/Input';
+import { IconButton } from '../../atoms/IconButton/IconButton';
+import { EmojiPicker } from '../../atoms/EmojiPicker/EmojiPicker';
 import { apiService } from '../../../services/api';
+import { PiMicrophone } from "react-icons/pi";
 
 interface MessageInputProps {
   onSendMessage: (content: string, messageType: 'text' | 'file' | 'audio') => void;
@@ -21,6 +24,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -53,6 +57,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     typingTimeoutRef.current = setTimeout(() => {
       onStopTyping();
     }, 3000);
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    setMessage(prev => prev + emoji);
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,21 +153,29 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           className="flex-1"
         />
         
-        <Button
-          variant="secondary"
+        <IconButton
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          disabled={disabled || isUploading}
+          className="text-gray-600 hover:text-gray-800"
+        >
+          😊
+        </IconButton>
+        
+        <IconButton
           onClick={() => fileInputRef.current?.click()}
           disabled={disabled || isUploading}
+          className="text-gray-600 hover:text-gray-800"
         >
-          📎
-        </Button>
+          <AiOutlinePaperClip/>
+        </IconButton>
         
-        <Button
-          variant={isRecording ? 'danger' : 'secondary'}
+        <IconButton
           onClick={handleRecordingClick}
           disabled={disabled || isUploading}
+          className={isRecording ? "text-red-600 hover:text-red-800" : "text-gray-600 hover:text-gray-800"}
         >
-          {isRecording ? '⏹️' : '🎤'}
-        </Button>
+          {isRecording ? '⏹️' : <PiMicrophone/>}
+        </IconButton>
         
         <input
           ref={fileInputRef}
@@ -169,13 +185,20 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           onChange={handleFileUpload}
         />
         
-        <Button
+        <IconButton
           onClick={handleSendMessage}
           disabled={disabled || !message.trim() || isUploading}
+          className={!message.trim() ? "text-gray-400" : "text-blue-600 hover:text-blue-800"}
         >
-          {isUploading ? 'Enviando...' : 'Enviar'}
-        </Button>
+          ➤
+        </IconButton>
       </div>
+      
+      <EmojiPicker
+        isOpen={showEmojiPicker}
+        onClose={() => setShowEmojiPicker(false)}
+        onEmojiSelect={handleEmojiSelect}
+      />
     </div>
   );
 }; 
