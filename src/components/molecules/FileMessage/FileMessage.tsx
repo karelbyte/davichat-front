@@ -48,7 +48,7 @@ export const FileMessage: React.FC<FileMessageProps> = ({
 
   if (isAudio) {
     return (
-      <div className="flex p-3 w-80">
+      <div className="flex p-3 md:w-60 lg:w-80">
         <audio controls className="w-full h-10 rounded">
           <source src={fileData.fileUrl} type={fileData.fileType} />
           Tu navegador no soporta el elemento de audio.

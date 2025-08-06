@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { UserCard } from '../../molecules/UserCard/UserCard';
 import { GroupCard } from '../../molecules/GroupCard/GroupCard';
 import { IconButton } from '../../atoms/IconButton/IconButton';
+import { SearchInput } from '../../atoms/SearchInput/SearchInput';
 import { AiOutlineUsergroupAdd } from "react-icons/ai";
 import { User, Conversation } from '../../../services/api';
 
@@ -30,8 +31,39 @@ export const UserList: React.FC<UserListProps> = ({
   onCreateGroup,
   className = ''
 }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const selectedElementRef = useRef<HTMLDivElement>(null);
+  
   const filteredUsers = users.filter(user => user.id !== currentUserId);
   const groups = conversations.filter(conv => conv.type === 'group');
+
+  const filteredResults = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return {
+        users: filteredUsers,
+        groups: groups
+      };
+    }
+
+    const term = searchTerm.toLowerCase();
+    
+    const filteredUsersResult = users.filter(user => 
+      user.id !== currentUserId && 
+      (user.name.toLowerCase().includes(term) || 
+       user.email.toLowerCase().includes(term))
+    );
+
+    const filteredGroupsResult = groups.filter(group =>
+      group.name?.toLowerCase().includes(term) ||
+      group.description?.toLowerCase().includes(term)
+    );
+
+    return {
+      users: filteredUsersResult,
+      groups: filteredGroupsResult
+    };
+  }, [searchTerm, users, groups, currentUserId]);
 
   const isUserSelected = (userId: string) => {
     return currentConversation?.type === 'private' && 
@@ -42,10 +74,48 @@ export const UserList: React.FC<UserListProps> = ({
     return currentConversation?.id === groupId;
   };
 
+  // Scroll automático hacia el elemento seleccionado
+  useEffect(() => {
+    if (selectedElementRef.current && scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const element = selectedElementRef.current;
+      
+      const containerRect = container.getBoundingClientRect();
+      const elementRect = element.getBoundingClientRect();
+      
+      // Verificar si el elemento está fuera de la vista
+      const isAbove = elementRect.top < containerRect.top;
+      const isBelow = elementRect.bottom > containerRect.bottom;
+      
+      if (isAbove || isBelow) {
+        element.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }
+    }
+  }, [currentConversation]);
+
+  const handleUserClick = (userId: string) => {
+    onUserClick(userId);
+    setSearchTerm('');
+  };
+
+  const handleGroupClick = (conversation: Conversation) => {
+    onGroupClick(conversation);
+    setSearchTerm('');
+  };
+
   return (
     <div className={`w-80 bg-white border-r flex flex-col ${className}`}>
       <div className="p-2 border-gray-200">
-        <div className="flex items-center justify-end">
+        <div className="flex items-center space-x-2">
+          <SearchInput
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Buscar usuarios y grupos..."
+            className="flex-1"
+          />
           <IconButton
             size="md"
             onClick={onCreateGroup}
@@ -56,30 +126,40 @@ export const UserList: React.FC<UserListProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
         <div className="space-y-2">
-          {filteredUsers.length === 0 && groups.length === 0 ? (
-            <div className="text-sm text-gray-500">Cargando usuarios y grupos...</div>
+          {filteredResults.users.length === 0 && filteredResults.groups.length === 0 ? (
+            <div className="text-sm text-gray-500 p-4 text-center">
+              {searchTerm.trim() ? 'No se encontraron resultados' : 'Cargando usuarios y grupos...'}
+            </div>
           ) : (
             <>
-              {filteredUsers.map(user => (
-                <UserCard
+              {filteredResults.users.map(user => (
+                <div
                   key={user.id}
-                  user={user}
-                  unreadCount={unreadCounts[user.id] || 0}
-                  isSelected={isUserSelected(user.id)}
-                  onClick={() => onUserClick(user.id)}
-                />
+                  ref={isUserSelected(user.id) ? selectedElementRef : null}
+                >
+                  <UserCard
+                    user={user}
+                    unreadCount={unreadCounts[user.id] || 0}
+                    isSelected={isUserSelected(user.id)}
+                    onClick={() => handleUserClick(user.id)}
+                  />
+                </div>
               ))}
               
-              {groups.map(group => (
-                <GroupCard
+              {filteredResults.groups.map(group => (
+                <div
                   key={group.id}
-                  group={group}
-                  unreadCount={groupUnreadCounts[group.id] || 0}
-                  isSelected={isGroupSelected(group.id)}
-                  onClick={() => onGroupClick(group)}
-                />
+                  ref={isGroupSelected(group.id) ? selectedElementRef : null}
+                >
+                  <GroupCard
+                    group={group}
+                    unreadCount={groupUnreadCounts[group.id] || 0}
+                    isSelected={isGroupSelected(group.id)}
+                    onClick={() => handleGroupClick(group)}
+                  />
+                </div>
               ))}
             </>
           )}
