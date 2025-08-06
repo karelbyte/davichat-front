@@ -36,8 +36,8 @@ export const GroupCard: React.FC<GroupCardProps> = ({
             <div className="font-medium text-gray-800">{group.name || 'Grupo sin nombre'}</div>
             <div className="text-xs text-gray-600">Integrantes ({participantCount})</div>
           </div>
-          <Badge count={unreadCount} />
         </div>
+        <Badge count={unreadCount} />
       </div>
     </div>
   );
