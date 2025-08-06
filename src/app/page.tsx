@@ -1,22 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
-import { LoginPage } from '../components/pages/LoginPage/LoginPage';
-import { ChatPage } from '../components/pages/ChatPage/ChatPage';
-import { User } from '../services/api';
+import React from 'react';
+import { ProtectedRoute } from '../components/ProtectedRoute';
 
 export default function Home() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-
-  const handleLoginSuccess = (user: User) => {
-    setCurrentUser(user);
-    setIsLoggedIn(true);
-  };
-
-  if (!isLoggedIn) {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
-  }
-
-  return <ChatPage currentUser={currentUser} />;
+  return (
+    <ProtectedRoute>
+      {/* El contenido se maneja dentro de ProtectedRoute */}
+      <div />
+    </ProtectedRoute>
+  );
 }

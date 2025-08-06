@@ -11,6 +11,7 @@ import { AddParticipantsForm } from '../../molecules/AddParticipantsForm/AddPart
 import { Header } from '../../organisms/Header/Header';
 import { useSocket } from '../../../hooks/useSocket';
 import { useChat } from '../../../hooks/useChat';
+import { useAuth } from '../../../contexts/auth.context';
 import { User, Conversation, Message } from '../../../services/api';
 import { AiOutlineUserAdd } from "react-icons/ai";
 
@@ -21,6 +22,7 @@ interface ChatPageProps {
 export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
   const { getSocketService } = useSocket(currentUser?.id || null);
   const socketService = getSocketService();
+  const { logout } = useAuth();
   
   const {
     users,
@@ -65,7 +67,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
     if (socketService) {
       socketService.disconnect();
     }
-    window.location.reload();
+    logout();
   };
 
   const handleUserClick = (userId: string) => {

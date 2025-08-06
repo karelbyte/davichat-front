@@ -140,6 +140,30 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       ));
     });
 
+    socketService.on('user_connected', (data) => {
+      setUsers(prev => prev.map(user => 
+        user.id === data.userId 
+          ? { ...user, isOnline: true }
+          : user
+      ));
+    });
+
+    socketService.on('user_disconnected', (data) => {
+      setUsers(prev => prev.map(user => 
+        user.id === data.userId 
+          ? { ...user, isOnline: false }
+          : user
+      ));
+    });
+
+    socketService.on('user_leave', (data) => {
+      setUsers(prev => prev.map(user => 
+        user.id === data.userId 
+          ? { ...user, isOnline: false }
+          : user
+      ));
+    });
+
     socketService.on('unread_message_private', (data) => {
       if (currentConversationRef.current && currentConversationRef.current.id === data.conversationId) return;
       setUnreadCounts(prev => ({

@@ -10,6 +10,8 @@ export interface SocketEvents {
   message_received: (message: any) => void;
   user_status_update: (data: { userId: string; status: string }) => void;
   user_connected: (data: any) => void;
+  user_disconnected: (data: any) => void;
+  user_leave: (data: any) => void;
   unread_message_private: (data: any) => void;
   unread_message_group: (data: any) => void;
   typing_indicator: (data: { conversationId: string; userId: string; isTyping: boolean }) => void;
@@ -56,6 +58,14 @@ export class SocketService {
       this.eventListeners.user_connected?.(data);
     });
 
+    this.socket.on('user_disconnected', (data) => {
+      this.eventListeners.user_disconnected?.(data);
+    });
+
+    this.socket.on('user_leave', (data) => {
+      this.eventListeners.user_leave?.(data);
+    });
+
     this.socket.on('unread_message_private', (data) => {
       this.eventListeners.unread_message_private?.(data);
     });
@@ -85,6 +95,10 @@ export class SocketService {
 
   disconnect(): void {
     if (this.socket) {
+      const userId = (this.socket.auth as any)?.userId;
+      if (userId) {
+        this.socket.emit('user_leave', { userId });
+      }
       this.socket.disconnect();
       this.socket = null;
     }
