@@ -63,6 +63,7 @@ export const UserList: React.FC<UserListProps> = ({
       users: filteredUsersResult,
       groups: filteredGroupsResult
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, users, groups, currentUserId]);
 
   const isUserSelected = (userId: string) => {
@@ -74,7 +75,7 @@ export const UserList: React.FC<UserListProps> = ({
     return currentConversation?.id === groupId;
   };
 
-  // Scroll automático hacia el elemento seleccionado
+
   useEffect(() => {
     if (selectedElementRef.current && scrollContainerRef.current) {
       const container = scrollContainerRef.current;
@@ -83,7 +84,7 @@ export const UserList: React.FC<UserListProps> = ({
       const containerRect = container.getBoundingClientRect();
       const elementRect = element.getBoundingClientRect();
       
-      // Verificar si el elemento está fuera de la vista
+     
       const isAbove = elementRect.top < containerRect.top;
       const isBelow = elementRect.bottom > containerRect.bottom;
       

@@ -1,12 +1,5 @@
 import React from 'react';
-
-interface Message {
-  id: string;
-  content: string;
-  senderId: string;
-  timestamp: string;
-  messageType: 'text' | 'file' | 'audio';
-}
+import { Message } from '../../../services/types';
 
 interface MessageBubbleProps {
   message: Message;

@@ -32,7 +32,6 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
   isOpen,
   onClose,
   onEmojiSelect,
-  className = ''
 }) => {
   if (!isOpen) return null;
 

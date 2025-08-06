@@ -12,7 +12,8 @@ import { Header } from '../../organisms/Header/Header';
 import { useSocket } from '../../../hooks/useSocket';
 import { useChat } from '../../../hooks/useChat';
 import { useAuth } from '../../../contexts/auth.context';
-import { User, Conversation, Message } from '../../../services/api';
+import { User, Conversation } from '../../../services/api';
+import { Message } from '../../../services/types';
 import { AiOutlineUserAdd } from "react-icons/ai";
 
 interface ChatPageProps {
@@ -32,7 +33,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
     unreadCounts,
     groupUnreadCounts,
     typingUsers,
-    isLoading,
     startPrivateChat,
     joinConversation,
     sendMessage,
@@ -40,7 +40,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
     stopTyping,
     createGroup,
     addUserToGroup,
-    loadUsersAndConversations
   } = useChat(currentUser || null, socketService);
 
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);

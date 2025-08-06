@@ -1,11 +1,12 @@
 import axios from 'axios';
 import { config } from '../config/env';
+import { Message } from './types';
 
 const api = axios.create({
   baseURL: config.apiUrl,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
 });
 
 export interface User {
@@ -34,20 +35,6 @@ export interface Conversation {
   updatedAt: string;
   lastMessage?: string;
   lastMessageAt?: string;
-}
-
-export interface Message {
-  id: string;
-  conversationId: string;
-  senderId: string;
-  recipientId?: string;
-  content: string;
-  messageType: 'text' | 'file' | 'audio';
-  timestamp: string;
-  isEdited: boolean;
-  isDeleted: boolean;
-  editedAt?: string;
-  replyTo?: string;
 }
 
 export interface FileUploadResponse {

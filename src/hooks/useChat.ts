@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { apiService, User, Conversation, Message } from '../services/api';
+import { apiService, User, Conversation } from '../services/api';
+import { Message } from '../services/types';
 import { SocketService } from '../services/socket';
 
 export const useChat = (currentUser: User | null, socketService: SocketService | null) => {
@@ -124,91 +125,96 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
   }, [currentConversation, currentUser, socketService]);
 
   useEffect(() => {
-    if (!socketService) return;
+    if (!socketService || !currentUser) return;
 
-    socketService.on('message_received', (message) => {
-      if (currentConversationRef.current && message.conversationId === currentConversationRef.current.id) {
-        setMessages(prev => [...prev, message]);
-      }
-    });
-
-    socketService.on('user_status_update', (data) => {
-      setUsers(prev => prev.map(user => 
-        user.id === data.userId 
-          ? { ...user, isOnline: data.status === 'online' }
-          : user
-      ));
-    });
-
-    socketService.on('user_connected', (data) => {
-      setUsers(prev => prev.map(user => 
-        user.id === data.userId 
-          ? { ...user, isOnline: true }
-          : user
-      ));
-    });
-
-    socketService.on('user_disconnected', (data) => {
-      setUsers(prev => prev.map(user => 
-        user.id === data.userId 
-          ? { ...user, isOnline: false }
-          : user
-      ));
-    });
-
-    socketService.on('user_leave', (data) => {
-      setUsers(prev => prev.map(user => 
-        user.id === data.userId 
-          ? { ...user, isOnline: false }
-          : user
-      ));
-    });
-
-    socketService.on('unread_message_private', (data) => {
-      if (currentConversationRef.current && currentConversationRef.current.id === data.conversationId) return;
-      setUnreadCounts(prev => ({
-        ...prev,
-        [data.senderId]: (prev[data.senderId] || 0) + 1
-      }));
-    });
-
-    socketService.on('unread_message_group', (data) => {
-      if (currentConversationRef.current && currentConversationRef.current.id === data.conversationId) return;
-      setGroupUnreadCounts(prev => ({
-        ...prev,
-        [data.conversationId]: (prev[data.conversationId] || 0) + 1
-      }));
-    });
-
-    socketService.on('typing_indicator', (data) => {
-      if (!currentConversationRef.current || data.conversationId !== currentConversationRef.current.id) return;
-      if (data.userId === currentUser?.id) return;
-
-      setTypingUsers(prev => {
-        const newSet = new Set(prev);
-        if (data.isTyping) {
-          newSet.add(data.userId);
-        } else {
-          newSet.delete(data.userId);
+    const setupEventListeners = () => {
+      socketService.on('message_received', (message) => {
+        if (currentConversationRef.current && message.conversationId === currentConversationRef.current.id) {
+          setMessages(prev => [...prev, message]);
         }
-        return newSet;
       });
-    });
 
-    socketService.on('group_created', () => {
-      loadUsersAndConversations();
-    });
+      socketService.on('user_status_update', (data) => {
+        setUsers(prev => prev.map(user => 
+          user.id === data.userId 
+            ? { ...user, isOnline: data.status === 'online' }
+            : user
+        ));
+      });
 
-    socketService.on('user_added_to_group', () => {
-      loadUsersAndConversations();
-    });
+      socketService.on('user_connected', (data) => {
+        if (!data.user) return;
+        setUsers(prev => prev.map(user => 
+          user.id === data.user.id 
+            ? { ...user, isOnline: true }
+            : user
+        ));
+      });
+
+      socketService.on('user_disconnected', (data) => {
+        setUsers(prev => prev.map(user => 
+          user.id === data.userId 
+            ? { ...user, isOnline: false }
+            : user
+        ));
+      });
+
+      socketService.on('user_leave', (data) => {
+        setUsers(prev => prev.map(user => 
+          user.id === data.userId 
+            ? { ...user, isOnline: false }
+            : user
+        ));
+      });
+
+      socketService.on('unread_message_private', (data) => {
+        if (currentConversationRef.current && currentConversationRef.current.participants.includes(data.senderId)) return;
+        setUnreadCounts(prev => ({
+          ...prev,
+          [data.senderId]: (prev[data.senderId] || 0) + 1
+        }));
+      });
+
+      socketService.on('unread_message_group', (data) => {
+        if (currentConversationRef.current && currentConversationRef.current.id === data.conversationId) return;
+        setGroupUnreadCounts(prev => ({
+          ...prev,
+          [data.conversationId]: (prev[data.conversationId] || 0) + 1
+        }));
+      });
+
+      socketService.on('typing_indicator', (data) => {
+        if (!currentConversationRef.current || data.conversationId !== currentConversationRef.current.id) return;
+        if (data.userId === currentUser?.id) return;
+
+        setTypingUsers(prev => {
+          const newSet = new Set(prev);
+          if (data.isTyping) {
+            newSet.add(data.userId);
+          } else {
+            newSet.delete(data.userId);
+          }
+          return newSet;
+        });
+      });
+
+      socketService.on('group_created', () => {
+        loadUsersAndConversations();
+      });
+
+      socketService.on('user_added_to_group', () => {
+        loadUsersAndConversations();
+      });
+    };
+
+    setupEventListeners();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [socketService, loadUsersAndConversations]);
+  }, [socketService, currentUser]);
 
   useEffect(() => {
-    if (!socketService || !currentConversation) return;
+    if (!socketService || !currentConversation || !currentUser) return;
     
-    socketService.joinRoom(currentConversation.id, currentUser?.id || '');
+    socketService.joinRoom(currentConversation.id, currentUser.id);
   }, [socketService, currentConversation, currentUser]);
 
   useEffect(() => {
