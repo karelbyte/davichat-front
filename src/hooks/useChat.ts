@@ -178,6 +178,7 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     socketService.on('user_added_to_group', () => {
       loadUsersAndConversations();
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socketService, loadUsersAndConversations]);
 
   useEffect(() => {
