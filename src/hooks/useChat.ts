@@ -112,6 +112,7 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
 
     socketService.createGroup({
       ...groupData,
+      participants: [...groupData.participants, currentUser.id],
       createdBy: currentUser.id
     });
   }, [currentUser, socketService]);

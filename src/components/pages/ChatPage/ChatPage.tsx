@@ -6,6 +6,9 @@ import { MessageBubble } from '../../molecules/MessageBubble/MessageBubble';
 import { FileMessage } from '../../molecules/FileMessage/FileMessage';
 import { Button } from '../../atoms/Button/Button';
 import { IconButton } from '../../atoms/IconButton/IconButton';
+import { Modal } from '../../atoms/Modal/Modal';
+import { CreateGroupForm } from '../../molecules/CreateGroupForm/CreateGroupForm';
+import { AddParticipantsForm } from '../../molecules/AddParticipantsForm/AddParticipantsForm';
 import { Header } from '../../organisms/Header/Header';
 import { useSocket } from '../../../hooks/useSocket';
 import { useChat } from '../../../hooks/useChat';
@@ -41,12 +44,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
 
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [showAddParticipantsModal, setShowAddParticipantsModal] = useState(false);
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [selectedUsersToAdd, setSelectedUsersToAdd] = useState<string[]>([]);
-  const [groupFormData, setGroupFormData] = useState({
-    name: '',
-    description: ''
-  });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -75,33 +72,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
 
   const handleCreateGroup = () => {
     setShowCreateGroupModal(true);
-  };
-
-  const handleGroupSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (selectedUsers.length === 0) return;
-
-    createGroup({
-      name: groupFormData.name,
-      description: groupFormData.description,
-      participants: selectedUsers
-    });
-
-    setShowCreateGroupModal(false);
-    setGroupFormData({ name: '', description: '' });
-    setSelectedUsers([]);
-  };
-
-  const handleAddParticipants = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (selectedUsersToAdd.length === 0) return;
-
-    selectedUsersToAdd.forEach(userId => {
-      addUserToGroup(userId);
-    });
-
-    setShowAddParticipantsModal(false);
-    setSelectedUsersToAdd([]);
   };
 
   const renderMessage = (message: Message) => {
@@ -244,141 +214,40 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
       </div>
 
       {showCreateGroupModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96">
-            <h3 className="text-lg font-semibold mb-4">Crear Grupo</h3>
-            <form onSubmit={handleGroupSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre del Grupo
-                </label>
-                <input
-                  type="text"
-                  value={groupFormData.name}
-                  onChange={(e) => setGroupFormData(prev => ({ ...prev, name: e.target.value }))}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Descripción
-                </label>
-                <textarea
-                  value={groupFormData.description}
-                  onChange={(e) => setGroupFormData(prev => ({ ...prev, description: e.target.value }))}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Participantes
-                </label>
-                <div className="space-y-2 max-h-32 overflow-y-auto">
-                  {users
-                    .filter(user => user.id !== currentUser.id)
-                    .map(user => (
-                      <div key={user.id} className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id={`user_${user.id}`}
-                          value={user.id}
-                          checked={selectedUsers.includes(user.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedUsers(prev => [...prev, user.id]);
-                            } else {
-                              setSelectedUsers(prev => prev.filter(id => id !== user.id));
-                            }
-                          }}
-                          className="rounded"
-                        />
-                        <label htmlFor={`user_${user.id}`} className="text-sm">
-                          {user.name}
-                        </label>
-                      </div>
-                    ))}
-                </div>
-              </div>
-              <div className="flex space-x-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setShowCreateGroupModal(false)}
-                  className="flex-1"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={selectedUsers.length === 0}
-                  className="flex-1"
-                >
-                  Crear Grupo
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <Modal
+          isOpen={showCreateGroupModal}
+          onClose={() => setShowCreateGroupModal(false)}
+        >
+          <CreateGroupForm
+            users={users}
+            currentUserId={currentUser.id}
+            onSubmit={(data) => {
+              createGroup(data);
+              setShowCreateGroupModal(false);
+            }}
+            onCancel={() => setShowCreateGroupModal(false)}
+          />
+        </Modal>
       )}
 
-      {showAddParticipantsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96">
-            <h3 className="text-lg font-semibold mb-4">Añadir Participantes</h3>
-            <form onSubmit={handleAddParticipants} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Usuarios disponibles
-                </label>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {users
-                    .filter(user => user.id !== currentUser.id)
-                    .filter(user => !currentConversation?.participants?.includes(user.id))
-                    .map(user => (
-                      <div key={user.id} className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id={`add_user_${user.id}`}
-                          value={user.id}
-                          checked={selectedUsersToAdd.includes(user.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedUsersToAdd(prev => [...prev, user.id]);
-                            } else {
-                              setSelectedUsersToAdd(prev => prev.filter(id => id !== user.id));
-                            }
-                          }}
-                          className="rounded"
-                        />
-                        <label htmlFor={`add_user_${user.id}`} className="text-sm">
-                          {user.name}
-                        </label>
-                      </div>
-                    ))}
-                </div>
-              </div>
-              <div className="flex space-x-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setShowAddParticipantsModal(false)}
-                  className="flex-1"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={selectedUsersToAdd.length === 0}
-                  className="flex-1"
-                >
-                  Añadir Seleccionados
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {showAddParticipantsModal && currentConversation && (
+        <Modal
+          isOpen={showAddParticipantsModal}
+          onClose={() => setShowAddParticipantsModal(false)}
+        >
+          <AddParticipantsForm
+            users={users}
+            currentUserId={currentUser.id}
+            currentConversation={currentConversation}
+            onSubmit={(participants) => {
+              participants.forEach(userId => {
+                addUserToGroup(userId);
+              });
+              setShowAddParticipantsModal(false);
+            }}
+            onCancel={() => setShowAddParticipantsModal(false)}
+          />
+        </Modal>
       )}
     </div>
   );
