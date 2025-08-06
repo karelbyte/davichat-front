@@ -39,7 +39,7 @@ export const FileMessage: React.FC<FileMessageProps> = ({
           alt={fileData.fileName} 
           className="max-w-full h-auto rounded"
         />
-        <div className={`text-xs ${isOwnMessage ? 'text-blue-100' : 'text-gray-500'}`}>
+        <div className={`text-xs text-gray-500`}>
           📎 {fileData.fileName} ({fileSize})
         </div>
       </div>
@@ -48,16 +48,7 @@ export const FileMessage: React.FC<FileMessageProps> = ({
 
   if (isAudio) {
     return (
-      <div className="bg-gray-100 rounded-lg p-3">
-        <div className="flex items-center space-x-3 mb-2">
-          <div className="text-2xl">🎵</div>
-          <div className="flex-1">
-            <div className="text-sm font-medium">{fileData.fileName}</div>
-            <div className={`text-xs ${isOwnMessage ? 'text-blue-100' : 'text-gray-500'}`}>
-              {fileSize}
-            </div>
-          </div>
-        </div>
+      <div className="flex p-3 w-80">
         <audio controls className="w-full h-10 rounded">
           <source src={fileData.fileUrl} type={fileData.fileType} />
           Tu navegador no soporta el elemento de audio.
@@ -67,7 +58,7 @@ export const FileMessage: React.FC<FileMessageProps> = ({
   }
 
   return (
-    <div className="flex items-center space-x-2 p-2 bg-gray-100 rounded">
+    <div className="flex items-center space-x-2 p-2 rounded">
       <div className="text-2xl">📄</div>
       <div className="flex-1">
         <div className="text-sm font-medium">{fileData.fileName}</div>

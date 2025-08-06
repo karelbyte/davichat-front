@@ -4,7 +4,6 @@ import { MessageInput } from '../../organisms/MessageInput/MessageInput';
 import { TypingIndicator } from '../../atoms/TypingIndicator/TypingIndicator';
 import { MessageBubble } from '../../molecules/MessageBubble/MessageBubble';
 import { FileMessage } from '../../molecules/FileMessage/FileMessage';
-import { Button } from '../../atoms/Button/Button';
 import { IconButton } from '../../atoms/IconButton/IconButton';
 import { Modal } from '../../atoms/Modal/Modal';
 import { CreateGroupForm } from '../../molecules/CreateGroupForm/CreateGroupForm';
@@ -100,14 +99,14 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
                 </div>
               </div>
               <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                isOwnMessage ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'
+                isOwnMessage ? 'border border-blue-600 text-gray-800' : 'border border-gray-200 text-gray-800'
               }`}>
                 <FileMessage fileData={fileData} isOwnMessage={isOwnMessage} />
               </div>
             </div>
           </div>
         );
-      } catch (error) {
+      } catch {
         return (
           <MessageBubble
             key={message.id}
