@@ -43,6 +43,13 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
 
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [showAddParticipantsModal, setShowAddParticipantsModal] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState<Array<{
+    senderId: string;
+    senderName: string;
+    conversationId: string;
+    messageContent: string;
+    timestamp: string;
+  }>>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -72,6 +79,63 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
   const handleCreateGroup = () => {
     setShowCreateGroupModal(true);
   };
+
+  const handleNotificationClick = (conversationId: string, senderId: string) => {
+    const conversation = conversations.find(c => c.id === conversationId);
+    if (conversation) {
+      joinConversation(conversation);
+    } else {
+      startPrivateChat(senderId);
+    }
+    
+    setUnreadNotifications(prev => 
+      prev.filter(notification => 
+        !(notification.conversationId === conversationId && notification.senderId === senderId)
+      )
+    );
+  };
+
+  useEffect(() => {
+    const notifications: Array<{
+      senderId: string;
+      senderName: string;
+      conversationId: string;
+      messageContent: string;
+      timestamp: string;
+    }> = [];
+
+    Object.entries(unreadCounts).forEach(([userId, count]) => {
+      if (count > 0) {
+        const user = users.find(u => u.id === userId);
+        if (user) {
+          notifications.push({
+            senderId: userId,
+            senderName: user.name,
+            conversationId: userId,
+            messageContent: `${count} mensaje${count > 1 ? 's' : ''} no leído${count > 1 ? 's' : ''}`,
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+    });
+
+    Object.entries(groupUnreadCounts).forEach(([conversationId, count]) => {
+      if (count > 0) {
+        const conversation = conversations.find(c => c.id === conversationId);
+        if (conversation) {
+          notifications.push({
+            senderId: conversation.createdBy || '',
+            senderName: conversation.name || 'Grupo',
+            conversationId: conversationId,
+            messageContent: `${count} mensaje${count > 1 ? 's' : ''} no leído${count > 1 ? 's' : ''}`,
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+    });
+
+    setUnreadNotifications(notifications);
+  }, [unreadCounts, groupUnreadCounts, users, conversations]);
 
   const renderMessage = (message: Message) => {
     const isOwnMessage = message.senderId === currentUser?.id;
@@ -134,7 +198,12 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
 
   return (
     <div className="h-screen flex flex-col">
-      <Header currentUser={currentUser} onLogout={handleLogout} />
+      <Header 
+        currentUser={currentUser} 
+        onLogout={handleLogout}
+        unreadMessages={unreadNotifications}
+        onNotificationClick={handleNotificationClick}
+      />
       
       <div className="flex flex-1 overflow-hidden">
         <UserList
@@ -179,7 +248,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
               </div>
 
               <div className="flex-1 overflow-y-auto">
-                <div className="lg:mx-[300px] xl:mx-[400px] h-full">
+                <div className="space-y-4 lg:mx-[300px] xl:mx-[400px] h-full">
                   {messages.length === 0 ? (
                     <div className="flex items-center justify-center h-full min-h-[400px]">
                       <div className="text-center">
@@ -198,7 +267,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
                       </div>
                     </div>
                   ) : (
-                    <div className="py-12">
+                    <div className="py-12"> 
                       {messages.map(renderMessage)}
                       <div ref={messagesEndRef} />
                     </div>

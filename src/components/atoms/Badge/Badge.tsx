@@ -27,7 +27,7 @@ export const Badge: React.FC<BadgeProps> = ({
   };
   
   return (
-    <span className={`${variantClasses[variant]} ${sizeClasses[size]} rounded-full font-medium ${className}`}>
+    <span className={`${variantClasses[variant]} ${sizeClasses[size]} rounded-full ${className}`}>
       {count}
     </span>
   );
