@@ -3,6 +3,7 @@ import { AiOutlinePaperClip } from "react-icons/ai";
 import { Input } from '../../atoms/Input/Input';
 import { IconButton } from '../../atoms/IconButton/IconButton';
 import { EmojiPicker } from '../../atoms/EmojiPicker/EmojiPicker';
+import { FileUploadModal } from '../../atoms/FileUploadModal/FileUploadModal';
 import { apiService } from '../../../services/api';
 import { PiMicrophone } from "react-icons/pi";
 
@@ -25,9 +26,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showFileUploadModal, setShowFileUploadModal] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleSendMessage = () => {
@@ -63,22 +64,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     setMessage(prev => prev + emoji);
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    try {
-      const fileData = await apiService.uploadFile(file);
-      onSendMessage(JSON.stringify(fileData), 'file');
-    } catch (error) {
-      console.error('Error uploading file:', error);
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
+  const handleFileUpload = async (fileData: any) => {
+    onSendMessage(JSON.stringify(fileData), 'file');
   };
 
   const startRecording = async () => {
@@ -162,7 +149,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         </IconButton>
         
         <IconButton
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => setShowFileUploadModal(true)}
           disabled={disabled || isUploading}
           className="text-gray-600 hover:text-gray-800"
         >
@@ -177,14 +164,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           {isRecording ? '⏹️' : <PiMicrophone/>}
         </IconButton>
         
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden"
-          accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,audio/*"
-          onChange={handleFileUpload}
-        />
-        
         <IconButton
           onClick={handleSendMessage}
           disabled={disabled || !message.trim() || isUploading}
@@ -198,6 +177,12 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         isOpen={showEmojiPicker}
         onClose={() => setShowEmojiPicker(false)}
         onEmojiSelect={handleEmojiSelect}
+      />
+      
+      <FileUploadModal
+        isOpen={showFileUploadModal}
+        onClose={() => setShowFileUploadModal(false)}
+        onFileUpload={handleFileUpload}
       />
     </div>
   );

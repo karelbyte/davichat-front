@@ -9,6 +9,7 @@ interface ModalProps {
 
 export const Modal: React.FC<ModalProps> = ({
   isOpen,
+  onClose,
   children,
   className = ''
 }) => {
@@ -16,7 +17,8 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
-      <div className={`bg-white rounded-lg p-6 w-96 shadow-xl border border-gray-200 ${className}`}>
+      <div className="absolute inset-0" onClick={onClose}></div>
+      <div className={`relative bg-white rounded-lg p-6 w-96 shadow-xl border border-gray-200 ${className}`}>
         {children}
       </div>
     </div>
