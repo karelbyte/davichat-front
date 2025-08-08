@@ -4,7 +4,7 @@ import { Input } from '../../atoms/Input/Input';
 import { IconButton } from '../../atoms/IconButton/IconButton';
 import { EmojiPicker } from '../../atoms/EmojiPicker/EmojiPicker';
 import { FileUploadModal } from '../../atoms/FileUploadModal/FileUploadModal';
-import { apiService } from '../../../services/api';
+import { apiService, FileUploadResponse } from '../../../services/api';
 import { PiMicrophone } from "react-icons/pi";
 
 interface MessageInputProps {
@@ -64,7 +64,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     setMessage(prev => prev + emoji);
   };
 
-  const handleFileUpload = async (fileData: any) => {
+  const handleFileUpload = async (fileData: FileUploadResponse) => {
     onSendMessage(JSON.stringify(fileData), 'file');
   };
 

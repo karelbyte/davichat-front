@@ -3,12 +3,12 @@ import { Modal } from '../Modal/Modal';
 import { Button } from '../Button/Button';
 import { IconButton } from '../IconButton/IconButton';
 import { AiOutlinePaperClip, AiOutlineClose } from "react-icons/ai";
-import { apiService } from '../../../services/api';
+import { apiService, FileUploadResponse } from '../../../services/api';
 
 interface FileUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onFileUpload: (fileData: any) => void;
+  onFileUpload: (fileData: FileUploadResponse) => void;
   className?: string;
 }
 
