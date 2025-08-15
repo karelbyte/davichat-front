@@ -12,6 +12,7 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
   const [groupUnreadCounts, setGroupUnreadCounts] = useState<Record<string, number>>({});
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const currentConversationRef = useRef<Conversation | null>(null);
 
@@ -23,15 +24,27 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     if (!currentUser) return;
 
     setIsLoading(true);
+    setError(null); // Limpiar errores previos
+    
+    // Crear un timeout para evitar que se quede colgada indefinidamente
+    const timeoutId = setTimeout(() => {
+      setError('La carga está tardando más de lo esperado. Por favor, verifica tu conexión.');
+      setIsLoading(false);
+    }, 30000); // 30 segundos de timeout
+
     try {
       const [usersData, conversationsData] = await Promise.all([
         apiService.getUsers(),
         apiService.getUserConversations(currentUser.id)
       ]);
+      
+      clearTimeout(timeoutId); // Limpiar timeout si la carga fue exitosa
       setUsers(usersData);
       setConversations(conversationsData);
     } catch (error) {
+      clearTimeout(timeoutId); // Limpiar timeout en caso de error
       console.error('Error loading data:', error);
+      setError('Error al cargar usuarios y conversaciones. Por favor, intenta de nuevo.');
     } finally {
       setIsLoading(false);
     }
@@ -221,6 +234,10 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     loadUsersAndConversations();
   }, [loadUsersAndConversations]);
 
+  const retryLoad = useCallback(() => {
+    loadUsersAndConversations();
+  }, [loadUsersAndConversations]);
+
   return {
     users,
     conversations,
@@ -230,6 +247,7 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     groupUnreadCounts,
     typingUsers: Array.from(typingUsers),
     isLoading,
+    error,
     startPrivateChat,
     joinConversation,
     sendMessage,
@@ -237,6 +255,7 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     stopTyping,
     createGroup,
     addUserToGroup,
-    loadUsersAndConversations
+    loadUsersAndConversations,
+    retryLoad
   };
 }; 

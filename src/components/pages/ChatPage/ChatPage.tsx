@@ -33,6 +33,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
     unreadCounts,
     groupUnreadCounts,
     typingUsers,
+    isLoading,
+    error,
     startPrivateChat,
     joinConversation,
     sendMessage,
@@ -40,6 +42,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
     stopTyping,
     createGroup,
     addUserToGroup,
+    retryLoad,
   } = useChat(currentUser || null, socketService);
 
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
@@ -217,6 +220,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
           onUserClick={handleUserClick}
           onGroupClick={handleGroupClick}
           onCreateGroup={handleCreateGroup}
+          isLoading={isLoading}
+          error={error}
+          onRetry={retryLoad}
         />
 
         <div className="flex-1 flex flex-col">

@@ -16,6 +16,9 @@ interface UserListProps {
   onUserClick: (userId: string) => void;
   onGroupClick: (conversation: Conversation) => void;
   onCreateGroup: () => void;
+  isLoading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
   className?: string;
 }
 
@@ -29,6 +32,9 @@ export const UserList: React.FC<UserListProps> = ({
   onUserClick,
   onGroupClick,
   onCreateGroup,
+  isLoading = false,
+  error,
+  onRetry,
   className = ''
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -129,9 +135,25 @@ export const UserList: React.FC<UserListProps> = ({
 
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
         <div className="space-y-2">
-          {filteredResults.users.length === 0 && filteredResults.groups.length === 0 ? (
+          {isLoading ? (
             <div className="text-sm text-gray-500 p-4 text-center">
-              {searchTerm.trim() ? 'No se encontraron resultados' : 'Cargando usuarios y grupos...'}
+              Cargando usuarios y grupos...
+            </div>
+          ) : error ? (
+            <div className="text-sm text-red-500 p-4 text-center">
+              <div className="mb-3">{error}</div>
+              {onRetry && (
+                <button
+                  onClick={onRetry}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                >
+                  Reintentar
+                </button>
+              )}
+            </div>
+          ) : filteredResults.users.length === 0 && filteredResults.groups.length === 0 ? (
+            <div className="text-sm text-gray-500 p-4 text-center">
+              {searchTerm.trim() ? 'No se encontraron resultados' : 'No hay usuarios conectados ni grupos disponibles.'}
             </div>
           ) : (
             <>

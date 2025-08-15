@@ -70,6 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="px-4 py-2 text-sm text-gray-700 border-b border-gray-100">
                     <div className="font-medium">{currentUser.name}</div>
                   </div>
+                  
                   <button
                     onClick={() => {
                       onLogout();
