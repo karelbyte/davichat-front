@@ -83,7 +83,7 @@ export class SocketService {
     this.socket = io(SOCKET_URL, {
       path: '/ws',
       auth: { userId },
-      transports: ['websocket'],
+      //transports: ['websocket'],
     });
 
     this.socket.on('connect', () => {
