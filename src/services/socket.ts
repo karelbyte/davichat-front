@@ -81,6 +81,7 @@ export class SocketService {
 
   connect(userId: string): Socket {
     this.socket = io(SOCKET_URL, {
+      path: '/ws',
       auth: { userId }
     });
 
