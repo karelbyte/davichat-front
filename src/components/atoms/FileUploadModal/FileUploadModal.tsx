@@ -7,7 +7,7 @@ import { apiService, FileUploadResponse } from '../../../services/api';
 interface FileUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onFileUpload: (fileData: FileUploadResponse) => void;
+  onFileUpload: (file: File) => void;
   className?: string;
 }
 
@@ -58,13 +58,11 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
     ];
 
     if (file.size > maxSize) {
-      console.error('File too large:', file.name);
       return false;
     }
 
     const isValidType = allowedTypes.some(type => file.type.startsWith(type));
     if (!isValidType) {
-      console.error('Invalid file type:', file.name);
       return false;
     }
 
@@ -77,21 +75,19 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
     const validFiles = files.filter(validateFile);
     if (validFiles.length === 0) return;
 
-    setIsUploading(true);
     try {
       for (const file of validFiles) {
-        const fileData = await apiService.uploadFile(file);
-        onFileUpload(fileData);
+        // Pasar el archivo directamente al callback
+        onFileUpload(file);
         setUploadedFiles(prev => [...prev, file]);
       }
-      // Cerrar la modal automáticamente después de subir todos los archivos
+      // Cerrar la modal automáticamente después de procesar todos los archivos
       setTimeout(() => {
         handleClose();
-      }, 1000); // Pequeño delay para que el usuario vea que se subió exitosamente
+      }, 1000); // Pequeño delay para que el usuario vea que se procesó exitosamente
     } catch (error) {
-      console.error('Error uploading files:', error);
+      // Error processing files
     } finally {
-      setIsUploading(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }

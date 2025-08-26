@@ -41,23 +41,23 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       clearTimeout(timeoutId); // Limpiar timeout si la carga fue exitosa
       setUsers(usersData);
       setConversations(conversationsData);
-    } catch (error) {
-      clearTimeout(timeoutId); // Limpiar timeout en caso de error
-      console.error('Error loading data:', error);
-      setError('Error al cargar usuarios y conversaciones. Por favor, intenta de nuevo.');
-    } finally {
+                    } catch (error) {
+                  clearTimeout(timeoutId); // Limpiar timeout en caso de error
+                  console.error('Error loading data:', error);
+                  setError('Error al cargar usuarios y conversaciones. Por favor, intenta de nuevo.');
+                } finally {
       setIsLoading(false);
     }
   }, [currentUser]);
 
-  const loadMessages = useCallback(async (conversationId: string) => {
-    try {
-      const messagesData = await apiService.getMessages(conversationId);
-      setMessages(messagesData);
-    } catch (error) {
-      console.error('Error loading messages:', error);
-    }
-  }, []);
+                const loadMessages = useCallback(async (conversationId: string) => {
+                try {
+                  const messagesData = await apiService.getMessages(conversationId);
+                  setMessages(messagesData);
+                } catch (error) {
+                  console.error('Error loading messages:', error);
+                }
+              }, []);
 
   const startPrivateChat = useCallback(async (otherUserId: string) => {
     if (!currentUser) return;
@@ -70,15 +70,19 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       });
 
       setUnreadCounts(prev => ({ ...prev, [otherUserId]: 0 }));
+      console.log('Private conversation created:', conversation.id, 'Type:', conversation.type);
+      localStorage.setItem('selectedConversationId', conversation.id);
       setCurrentConversation(conversation);
       setTypingUsers(new Set());
       loadMessages(conversation.id);
-    } catch (error) {
-      console.error('Error creating private chat:', error);
-    }
+                    } catch (error) {
+                  console.error('Error creating private chat:', error);
+                }
   }, [currentUser, loadMessages]);
 
   const joinConversation = useCallback((conversation: Conversation) => {
+    console.log('Conversation selected:', conversation.id, 'Type:', conversation.type, 'Name:', conversation.name);
+    localStorage.setItem('selectedConversationId', conversation.id);
     setCurrentConversation(conversation);
     setTypingUsers(new Set());
 
@@ -102,7 +106,11 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
   }, [currentUser, loadMessages]);
 
   const sendMessage = useCallback((content: string, messageType: 'text' | 'file' | 'audio' = 'text') => {
-    if (!currentConversation || !currentUser || !socketService) return;
+    if (!currentUser || !socketService) return;
+    
+    if (!currentConversation?.id) {
+      return;
+    }
     
     socketService.sendMessage(currentConversation.id, currentUser.id, content, messageType);
   }, [currentConversation, currentUser, socketService]);
@@ -143,8 +151,26 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     const setupEventListeners = () => {
       
       socketService.on('message_received', (message) => {
-        if (currentConversationRef.current && message.conversationId === currentConversationRef.current.id) {
+        // Agregar el mensaje al estado local si estamos en la conversación correcta
+        if (currentConversation && message.conversationId === currentConversation.id) {
           setMessages(prev => [...prev, message]);
+        }
+        
+        // También actualizar el contador de mensajes no leídos
+        if (message.conversationId !== currentConversation?.id) {
+          if (message.conversationId === currentConversation?.id) {
+            // Es una conversación privada
+            setUnreadCounts(prev => ({
+              ...prev,
+              [message.senderId]: (prev[message.senderId] || 0) + 1
+            }));
+          } else {
+            // Es una conversación de grupo
+            setGroupUnreadCounts(prev => ({
+              ...prev,
+              [message.conversationId]: (prev[message.conversationId] || 0) + 1
+            }));
+          }
         }
       });
 
@@ -210,7 +236,7 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       });
 
       socketService.on('unread_message_private', (data) => {
-        if (currentConversationRef.current && currentConversationRef.current.participants.includes(data.senderId)) return;
+        if (currentConversation && currentConversation.participants.includes(data.senderId)) return;
         setUnreadCounts(prev => ({
           ...prev,
           [data.senderId]: (prev[data.senderId] || 0) + 1
@@ -218,7 +244,7 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       });
 
       socketService.on('unread_message_group', (data) => {
-        if (currentConversationRef.current && currentConversationRef.current.id === data.conversationId) return;
+        if (currentConversation && currentConversation.id === data.conversationId) return;
         setGroupUnreadCounts(prev => ({
           ...prev,
           [data.conversationId]: (prev[data.conversationId] || 0) + 1
@@ -226,7 +252,7 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       });
 
       socketService.on('typing_indicator', (data) => {
-        if (!currentConversationRef.current || data.conversationId !== currentConversationRef.current.id) return;
+        if (!currentConversation || data.conversationId !== currentConversation.id) return;
         if (data.userId === currentUser?.id) return;
 
         setTypingUsers(prev => {
@@ -251,7 +277,7 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
 
     setupEventListeners();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [socketService, currentUser]);
+  }, [socketService, currentUser, currentConversation]);
 
   useEffect(() => {
     if (!socketService || !currentConversation || !currentUser) return;

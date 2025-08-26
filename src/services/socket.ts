@@ -194,6 +194,7 @@ export class SocketService {
       content,
       messageType
     };
+    console.log('Socket sending message:', data);
     this.emit('send_message', data);
   }
 

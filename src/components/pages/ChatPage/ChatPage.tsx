@@ -142,6 +142,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
   }, [unreadCounts, groupUnreadCounts, users, conversations]);
 
   const renderMessage = (message: Message) => {
+            // Rendering message
     const isOwnMessage = message.senderId === currentUser?.id;
     const isGroupConversation = currentConversation?.type === 'group';
     const senderName = isGroupConversation && !isOwnMessage 
@@ -154,18 +155,18 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
         return (
           <div key={message.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-4 px-2`}>
             <div className="flex flex-col">
-              <div className={`flex items-center gap-2 mb-1 ${
-                isOwnMessage ? 'justify-end' : 'justify-start'
-              }`}>
-                {isGroupConversation && !isOwnMessage && (
-                  <div className="text-xs font-medium text-gray-600">
-                    {senderName}
-                  </div>
-                )}
-                <div className="text-xs text-gray-500">
-                  {new Date(message.timestamp).toLocaleTimeString()}
-                </div>
-              </div>
+                      <div className={`flex items-center gap-2 mb-1 ${
+          isOwnMessage ? 'justify-end' : 'justify-start'
+        }`}>
+          {isGroupConversation && !isOwnMessage && (
+            <div className="text-xs font-medium text-gray-600">
+              {senderName}
+            </div>
+          )}
+                     <div className="text-xs text-gray-500">
+             {new Date(message.timestamp).toLocaleTimeString()}
+           </div>
+        </div>
               <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                 isOwnMessage ? 'border border-blue-600 text-gray-800' : 'border border-gray-200 text-gray-800'
               }`}>
@@ -174,7 +175,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
             </div>
           </div>
         );
-      } catch {
+      } catch (error) {
+        // Si falla el parsing, mostrar el mensaje como texto
         return (
           <MessageBubble
             key={message.id}
@@ -188,13 +190,13 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
     }
 
     return (
-      <MessageBubble
-        key={message.id}
-        message={message}
-        isOwnMessage={isOwnMessage}
-        senderName={senderName}
-        isGroupConversation={isGroupConversation}
-      />
+             <MessageBubble
+         key={message.id}
+         message={message}
+         isOwnMessage={isOwnMessage}
+         senderName={senderName}
+         isGroupConversation={isGroupConversation}
+       />
     );
   };
 
@@ -293,6 +295,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
                   onSendMessage={sendMessage}
                   onStartTyping={startTyping}
                   onStopTyping={stopTyping}
+                  currentConversation={currentConversation}
                 />
               </div>
             </>

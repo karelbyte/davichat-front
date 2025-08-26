@@ -4,13 +4,15 @@ import { Input } from '../../atoms/Input/Input';
 import { IconButton } from '../../atoms/IconButton/IconButton';
 import { EmojiPicker } from '../../atoms/EmojiPicker/EmojiPicker';
 import { FileUploadModal } from '../../atoms/FileUploadModal/FileUploadModal';
-import { apiService, FileUploadResponse } from '../../../services/api';
+import { apiService } from '../../../services/api';
 import { PiMicrophone } from "react-icons/pi";
+import { useAuth } from '../../../contexts/auth.context';
 
 interface MessageInputProps {
   onSendMessage: (content: string, messageType: 'text' | 'file' | 'audio') => void;
   onStartTyping: () => void;
   onStopTyping: () => void;
+  currentConversation: { id: string; type: 'private' | 'group'; name?: string } | null; // Para validar que existe una conversación activa
   disabled?: boolean;
   className?: string;
 }
@@ -19,9 +21,11 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   onSendMessage,
   onStartTyping,
   onStopTyping,
+  currentConversation,
   disabled = false,
   className = ''
 }) => {
+  const { user } = useAuth();
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -64,8 +68,21 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     setMessage(prev => prev + emoji);
   };
 
-  const handleFileUpload = async (fileData: FileUploadResponse) => {
-    onSendMessage(JSON.stringify(fileData), 'file');
+  const handleFileUpload = async (file: File) => {
+    const selectedConversationId = localStorage.getItem('selectedConversationId');
+    if (!selectedConversationId) {
+      return;
+    }
+    
+    console.log('File upload using localStorage ID:', selectedConversationId);
+    
+    // Subir archivo con los parámetros necesarios
+    // El backend se encarga de emitir el mensaje automáticamente
+    try {
+      await apiService.uploadFile(file, selectedConversationId, user?.id || '');
+    } catch (error) {
+      console.error('Error uploading file:', error);
+    }
   };
 
   const startRecording = async () => {
@@ -99,15 +116,18 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   const uploadAudioFile = async (audioBlob: Blob) => {
-    setIsUploading(true);
+    const selectedConversationId = localStorage.getItem('selectedConversationId');
+    if (!selectedConversationId) {
+      return;
+    }
+    
     try {
       const file = new File([audioBlob], 'audio.wav', { type: 'audio/wav' });
-      const fileData = await apiService.uploadFile(file);
-      onSendMessage(JSON.stringify(fileData), 'audio');
+      // Subir audio con los parámetros necesarios
+      // El backend se encarga de emitir el mensaje automáticamente
+      await apiService.uploadFile(file, selectedConversationId, user?.id || '');
     } catch (error) {
       console.error('Error uploading audio:', error);
-    } finally {
-      setIsUploading(false);
     }
   };
 

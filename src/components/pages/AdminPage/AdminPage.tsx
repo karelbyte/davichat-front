@@ -138,7 +138,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser }) => {
         throw new Error('Error al cargar mensajes');
       }
     } catch (error) {
-      console.error('Error loading messages:', error);
       toast.error('Error al cargar mensajes');
     }
   };
@@ -163,7 +162,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser }) => {
         totalMessages: prevStats.totalMessages // Mantener el conteo de mensajes si ya se cargaron
       }));
     } catch (error) {
-      console.error('Error loading admin data:', error);
       toast.error('Error al cargar datos de administración');
     } finally {
       setIsLoading(false);
@@ -233,7 +231,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser }) => {
           break;
       }
     } catch (error) {
-      console.error('Error deleting item:', error);
       toast.error(`Error al eliminar ${confirmModal.type === 'user' ? 'usuario' : confirmModal.type === 'conversation' ? 'conversación' : 'mensaje'}`);
     } finally {
       setConfirmModal({ isOpen: false, type: 'user', id: '', name: '' });

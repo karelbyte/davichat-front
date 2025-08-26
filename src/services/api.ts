@@ -38,11 +38,7 @@ export interface Conversation {
 }
 
 export interface FileUploadResponse {
-  fileUrl: string;
-  fileName: string;
-  fileSize: number;
-  fileType: string;
-  thumbnailUrl?: string;
+  success: boolean;
 }
 
 export const apiService = {
@@ -85,9 +81,11 @@ export const apiService = {
     return response.data;
   },
 
-  async uploadFile(file: File): Promise<FileUploadResponse> {
+  async uploadFile(file: File, conversationId: string, senderId: string): Promise<{ success: boolean }> {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('conversationId', conversationId);
+    formData.append('senderId', senderId);
 
     const response = await api.post('/upload', formData, {
       headers: {

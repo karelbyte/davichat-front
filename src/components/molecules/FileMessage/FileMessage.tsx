@@ -19,6 +19,7 @@ export const FileMessage: React.FC<FileMessageProps> = ({
   isOwnMessage,
   className = ''
 }) => {
+  // FileMessage rendering with data
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;

@@ -88,7 +88,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Función para mapear AuthUser a User del chat
   const connectToChat = async (): Promise<User | null> => {
     if (!user) {
-      console.error("No hay usuario autenticado para conectar al chat");
       return null;
     }
 
@@ -110,7 +109,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       return chatUser;
     } catch (error) {
-      console.error("Error conectando al chat:", error);
       toast.error("Error al conectar con el chat");
       return null;
     }
@@ -170,8 +168,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               setIsLoading(false);
               return;
             } catch (parseError) {
-              console.error("Error parseando usuario del hub:", parseError);
-        
+              console.log(parseError)
             }
           }
         }
@@ -220,15 +217,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setCookie('expired_at', futureExpire.toString(), futureExpire);
             
           } else {
-            console.warn("Usuario guardado tiene estructura inválida, limpiando...");
             localStorage.removeItem(TOKEN_KEY);
             localStorage.removeItem(USER_KEY);
             localStorage.removeItem("current_user");
           }
         }
       } catch (error) {
-        console.error("Error al cargar datos de autenticación:", error);
-
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
         localStorage.removeItem("current_user");
