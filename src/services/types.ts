@@ -30,20 +30,10 @@ export interface Message {
   }
 
   export interface UserConnected {
-    user: {
-      id: string;
-      name: string;
-      email: string;
-      roles: string[];
-      filials: string[];
-      status: 'online' | 'offline';
-      lastSeen: string;
-      avatar?: string;
-      createdAt: string;
-      updatedAt: string;
-      isActive: boolean;
-      isOnline: boolean;
-    };
+    userId: string;
+    name: string;
+    email: string;
+    status?: 'online' | 'offline';
   }
 
 

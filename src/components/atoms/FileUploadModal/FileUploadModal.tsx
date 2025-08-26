@@ -1,6 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Modal } from '../Modal/Modal';
-import { Button } from '../Button/Button';
 import { IconButton } from '../IconButton/IconButton';
 import { AiOutlinePaperClip, AiOutlineClose } from "react-icons/ai";
 import { apiService, FileUploadResponse } from '../../../services/api';
@@ -85,6 +84,10 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
         onFileUpload(fileData);
         setUploadedFiles(prev => [...prev, file]);
       }
+      // Cerrar la modal automáticamente después de subir todos los archivos
+      setTimeout(() => {
+        handleClose();
+      }, 1000); // Pequeño delay para que el usuario vea que se subió exitosamente
     } catch (error) {
       console.error('Error uploading files:', error);
     } finally {
@@ -95,8 +98,10 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
     }
   };
 
-  const handleBrowseClick = () => {
-    fileInputRef.current?.click();
+  const handleAreaClick = () => {
+    if (!isUploading) {
+      fileInputRef.current?.click();
+    }
   };
 
   const handleClose = () => {
@@ -118,7 +123,7 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
         </div>
 
         <div
-          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
             isDragOver 
               ? 'border-blue-400 bg-blue-50' 
               : 'border-gray-300 hover:border-gray-400'
@@ -126,20 +131,14 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
+          onClick={handleAreaClick}
         >
           <AiOutlinePaperClip className="mx-auto h-12 w-12 text-gray-400 mb-4" />
           
           <div className="space-y-2">
             <p className="text-sm text-gray-600">
-              Arrastra y suelta archivos aquí, o
+              Arrastra y suelta archivos aquí, o click para adjuntar
             </p>
-            <Button
-              onClick={handleBrowseClick}
-              disabled={isUploading}
-              className="text-blue-600 hover:text-blue-800 underline"
-            >
-              busca archivos
-            </Button>
           </div>
 
           <p className="text-xs text-gray-500 mt-2">

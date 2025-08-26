@@ -17,6 +17,22 @@ interface UserCardProps {
   className?: string;
 }
 
+// Función para truncar emails con más de un punto después de la arroba
+const truncateEmail = (email: string): string => {
+  const atIndex = email.indexOf('@');
+  if (atIndex === -1) return email;
+  
+  const domain = email.substring(atIndex + 1);
+  const dotsAfterAt = (domain.match(/\./g) || []).length;
+  
+  if (dotsAfterAt > 1) {
+    const firstDotIndex = domain.indexOf('.');
+    return email.substring(0, atIndex + 1 + firstDotIndex + 1) + '...';
+  }
+  
+  return email;
+};
+
 export const UserCard: React.FC<UserCardProps> = ({
   user,
   unreadCount = 0,
@@ -41,7 +57,7 @@ export const UserCard: React.FC<UserCardProps> = ({
           </div>
           <div>
             <div className="font-medium text-gray-800">{user.name}</div>
-            <div className="text-xs text-gray-600">{user.email}</div>
+            <div className="text-xs text-gray-600">{truncateEmail(user.email)}</div>
           </div>
         </div>
         <Badge count={unreadCount} />

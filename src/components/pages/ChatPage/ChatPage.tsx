@@ -21,7 +21,7 @@ interface ChatPageProps {
 }
 
 export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
-  const { getSocketService } = useSocket(currentUser?.id || null);
+  const { getSocketService } = useSocket(currentUser || null);
   const socketService = getSocketService();
   const { logout } = useAuth();
   

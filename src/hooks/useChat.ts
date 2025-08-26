@@ -141,6 +141,7 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     if (!socketService || !currentUser) return;
 
     const setupEventListeners = () => {
+      
       socketService.on('message_received', (message) => {
         if (currentConversationRef.current && message.conversationId === currentConversationRef.current.id) {
           setMessages(prev => [...prev, message]);
@@ -155,16 +156,44 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
         ));
       });
 
-      socketService.on('user_connected', (data) => {
-        if (!data.user) return;
-        setUsers(prev => prev.map(user => 
-          user.id === data.user.id 
-            ? { ...user, isOnline: true }
-            : user
-        ));
+            socketService.on('user_connected', (data) => {
+        // ✅ MANEJAR LA ESTRUCTURA REAL QUE LLEGA DEL BACKEND:
+        if (data.userId && data.name && data.email) {
+          const userData = {
+            id: data.userId,
+            name: data.name,
+            email: data.email,
+            roles: [], // Valores por defecto
+            filials: [],
+            status: data.status || 'online',
+            lastSeen: new Date().toISOString(),
+            isActive: true,
+            isOnline: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          
+          setUsers(prev => {
+            // Verificar si el usuario ya existe en la lista
+            const existingUser = prev.find(user => user.id === data.userId);
+            
+            if (existingUser) {
+              // Si existe, solo actualizar el estado online
+              return prev.map(user => 
+                user.id === data.userId 
+                  ? { ...user, isOnline: true }
+                  : user
+              );
+            } else {
+              // Si no existe, agregarlo a la lista con estado online
+              return [...prev, userData];
+            }
+          });
+        }
       });
 
       socketService.on('user_disconnected', (data) => {
+        
         setUsers(prev => prev.map(user => 
           user.id === data.userId 
             ? { ...user, isOnline: false }

@@ -1,19 +1,20 @@
 import { useEffect, useRef } from 'react';
 import { SocketService } from '../services/socket';
+import { User } from '../services/api';
 
-export const useSocket = (userId: string | null) => {
+export const useSocket = (currentUser: User | null) => {
   const socketServiceRef = useRef<SocketService | null>(null);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!currentUser) return;
 
     socketServiceRef.current = new SocketService();
-    socketServiceRef.current.connect(userId);
+    socketServiceRef.current.connect(currentUser);
 
     return () => {
       socketServiceRef.current?.disconnect();
     };
-  }, [userId]);
+  }, [currentUser]);
 
   const getSocketService = () => socketServiceRef.current;
 

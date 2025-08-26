@@ -2,6 +2,7 @@ import io, { Socket } from 'socket.io-client';
 
 import { config } from '../config/env';
 import { GroupCreated, Message, UnreadMessageGroup, UnreadMessagePrivate, UserAddedToGroup, UserConnected, UserDisconnected, UserLeave } from './types';
+import { User } from './api';
 
 const SOCKET_URL = config.wsUrl;
 
@@ -69,6 +70,8 @@ export interface AddUserToGroupData {
 
 export interface UserJoinData {
   userId: string;
+  name: string;
+  email: string;
 }
 
 export interface UserLeaveData {
@@ -78,16 +81,23 @@ export interface UserLeaveData {
 export class SocketService {
   private socket: Socket | null = null;
   private eventListeners: Partial<SocketEvents> = {};
+  private currentUser: User | null = null;
 
-  connect(userId: string): Socket {
+  connect(user: User): Socket {
+    this.currentUser = user;
+    
     this.socket = io(SOCKET_URL, {
       path: '/ws',
-      auth: { userId },
+      auth: { userId: user.id },
       //transports: ['websocket'],
     });
 
     this.socket.on('connect', () => {
-      this.socket?.emit('user_join', { userId });
+      this.socket?.emit('user_join', { 
+        userId: user.id,
+        name: user.name,
+        email: user.email
+      });
       this.eventListeners.connect?.();
     });
 
@@ -151,13 +161,11 @@ export class SocketService {
   }
 
   disconnect(): void {
-    if (this.socket) {
-      const userId = (this.socket.auth as {userId: string})?.userId;
-      if (userId) {
-        this.socket.emit('user_leave', { userId });
-      }
+    if (this.socket && this.currentUser) {
+      this.socket.emit('user_leave', { userId: this.currentUser.id });
       this.socket.disconnect();
       this.socket = null;
+      this.currentUser = null;
     }
   }
 
