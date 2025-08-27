@@ -89,6 +89,23 @@ class AdminApiService {
       throw error;
     }
   }
+
+  async deleteAllMessages(): Promise<{ message: string; deletedCount: number }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/messages`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al eliminar todos los mensajes');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error deleting all messages:', error);
+      throw error;
+    }
+  }
 }
 
 export const adminApiService = new AdminApiService();

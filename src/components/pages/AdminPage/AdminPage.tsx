@@ -81,7 +81,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser }) => {
   // Estados para modales de confirmación
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
-    type: 'user' | 'conversation' | 'message';
+    type: 'user' | 'conversation' | 'message' | 'all-messages';
     id: string;
     name: string;
   }>({
@@ -205,6 +205,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser }) => {
     }
   };
 
+  const handleDeleteAllMessages = async () => {
+    setConfirmModal({
+      isOpen: true,
+      type: 'all-messages',
+      id: '',
+      name: `todos los mensajes (${messages.length})`
+    });
+  };
+
   // Función para confirmar la eliminación
   const confirmDelete = async () => {
     try {
@@ -230,9 +239,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser }) => {
             throw new Error('Error al eliminar mensaje');
           }
           break;
+        case 'all-messages':
+          const deleteResponse = await adminApiService.deleteAllMessages();
+          toast.success(`${deleteResponse.message} (${deleteResponse.deletedCount} mensajes eliminados)`);
+          await loadMessages();
+          break;
       }
     } catch (error) {
-      toast.error(`Error al eliminar ${confirmModal.type === 'user' ? 'usuario' : confirmModal.type === 'conversation' ? 'conversación' : 'mensaje'}`);
+      console.log(error);
+      toast.error(`Error al eliminar ${confirmModal.type === 'user' ? 'usuario' : confirmModal.type === 'conversation' ? 'conversación' : confirmModal.type === 'all-messages' ? 'todos los mensajes' : 'mensaje'}`);
     } finally {
       setConfirmModal({ isOpen: false, type: 'user', id: '', name: '' });
     }
@@ -252,6 +267,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser }) => {
         return `¿Eliminar Conversación?`;
       case 'message':
         return `¿Eliminar Mensaje?`;
+      case 'all-messages':
+        return `¿Eliminar Todos los Mensajes?`;
       default:
         return `¿Confirmar Acción?`;
     }
@@ -266,6 +283,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser }) => {
         return `¿Estás seguro de que quieres eliminar la conversación "${confirmModal.name}"? Esta acción no se puede deshacer y se perderán todos los mensajes asociados.`;
       case 'message':
         return `¿Estás seguro de que quieres eliminar el mensaje "${confirmModal.name}"? Esta acción no se puede deshacer.`;
+      case 'all-messages':
+        return `¿Estás seguro de que quieres eliminar ${confirmModal.name}? Esta acción no se puede deshacer y se perderán permanentemente todos los mensajes del sistema.`;
       default:
         return `¿Estás seguro de que quieres realizar esta acción?`;
     }
@@ -300,7 +319,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser }) => {
         onNotificationClick={() => {}}
       />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="px-4 py-4">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Panel de Administración</h1>
           <p className="text-gray-600">Gestiona usuarios, conversaciones y monitorea el sistema</p>
@@ -494,12 +513,20 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser }) => {
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-800">📨 Mensajes</h2>
-              <button
-                onClick={loadMessages}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-              >
-                Cargar Mensajes
-              </button>
+              <div className="flex space-x-2">
+                <button
+                  onClick={loadMessages}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
+                  Cargar Mensajes
+                </button>
+                <button
+                  onClick={() => handleDeleteAllMessages()}
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                >
+                  🗑️ Eliminar Todos
+                </button>
+              </div>
             </div>
           </div>
           <div className="p-6">
