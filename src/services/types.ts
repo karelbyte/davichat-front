@@ -76,9 +76,45 @@ export interface Message {
   }
 
   export interface UserAddedToGroup {
-    conversationId: string;
-    conversationName: string;
-    addedUsers: string[];
-    addedBy: string;
-  }
+  conversationId: string;
+  conversationName: string;
+  addedUsers: string[];
+  addedBy: string;
+}
+
+export interface MessageEdited {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  recipientId?: string;
+  content: string;
+  messageType: 'text' | 'file' | 'audio';
+  fileUrl?: string;
+  fileName?: string;
+  fileSize?: number;
+  fileType?: string;
+  timestamp: string;
+  isEdited: boolean;
+  isDeleted: boolean;
+  editedAt?: string;
+  replyTo?: string;
+  sender: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+}
+
+export interface MessageDeleted {
+  messageId: string;
+  conversationId: string;
+}
+
+export interface EditMessageError {
+  error: string;
+}
+
+export interface DeleteMessageError {
+  error: string;
+}
   

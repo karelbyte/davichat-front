@@ -1,5 +1,6 @@
 import React from 'react';
 import { CiSaveDown2 } from "react-icons/ci";
+import { MdDelete } from 'react-icons/md';
 interface FileData {
   fileUrl: string;
   fileName: string;
@@ -12,13 +13,27 @@ interface FileMessageProps {
   fileData: FileData;
   isOwnMessage: boolean;
   className?: string;
+  onDeleteMessage?: (messageId: string) => void;
+  messageId?: string;
+  timestamp?: string;
 }
 
 export const FileMessage: React.FC<FileMessageProps> = ({
   fileData,
   isOwnMessage,
-  className = ''
+  className = '',
+  onDeleteMessage,
+  messageId,
+  timestamp
 }) => {
+  // Función para verificar si el mensaje se puede eliminar (dentro de 5 minutos)
+  const isMessageEditable = (timestamp: string) => {
+    const messageTime = new Date(timestamp).getTime();
+    const currentTime = new Date().getTime();
+    const timeDifference = currentTime - messageTime;
+    const fiveMinutes = 5 * 60 * 1000; // 5 minutos en milisegundos
+    return timeDifference <= fiveMinutes;
+  };
   // FileMessage rendering with data
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -41,13 +56,7 @@ export const FileMessage: React.FC<FileMessageProps> = ({
             alt={fileData.fileName} 
             className="max-w-full h-auto rounded"
           />
-          <a 
-            href={fileData.fileUrl} 
-            target="_blank" 
-            className="absolute top-2 right-2  bg-opacity-50 text-black p-1 rounded hover:bg-opacity-70"
-          >
-            <CiSaveDown2/>
-          </a>
+
         </div>
         <div className={`text-xs text-gray-500`}>
           📎 {fileData.fileName} ({fileSize})
@@ -76,13 +85,7 @@ export const FileMessage: React.FC<FileMessageProps> = ({
           {fileSize}
         </div>
       </div>
-      <a 
-        href={fileData.fileUrl} 
-        target="_blank" 
-        className="text-blue-500 hover:text-blue-700"
-      >
-       <CiSaveDown2/>
-      </a>
+
     </div>
   );
 }; 

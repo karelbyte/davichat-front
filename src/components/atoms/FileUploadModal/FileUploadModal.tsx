@@ -86,6 +86,7 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
         handleClose();
       }, 1000); // Pequeño delay para que el usuario vea que se procesó exitosamente
     } catch (error) {
+      console.log(error);
       // Error processing files
     } finally {
       if (fileInputRef.current) {

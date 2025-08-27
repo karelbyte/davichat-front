@@ -1,7 +1,7 @@
 import io, { Socket } from 'socket.io-client';
 
 import { config } from '../config/env';
-import { GroupCreated, Message, UnreadMessageGroup, UnreadMessagePrivate, UserAddedToGroup, UserConnected, UserDisconnected, UserLeave } from './types';
+import { GroupCreated, Message, UnreadMessageGroup, UnreadMessagePrivate, UserAddedToGroup, UserConnected, UserDisconnected, UserLeave, MessageEdited, MessageDeleted, EditMessageError, DeleteMessageError } from './types';
 import { User } from './api';
 
 const SOCKET_URL = config.wsUrl;
@@ -20,6 +20,10 @@ export interface SocketEvents {
   group_created: (data: GroupCreated) => void;
   user_added_to_group: (data: UserAddedToGroup) => void;
   messages_marked_as_read: (data: { conversationId: string; userId: string }) => void;
+  message_edited: (message: MessageEdited) => void;
+  message_deleted: (data: MessageDeleted) => void;
+  edit_message_error: (data: EditMessageError) => void;
+  delete_message_error: (data: DeleteMessageError) => void;
 }
 
 // Tipos para los datos de emisión
@@ -157,6 +161,22 @@ export class SocketService {
       this.eventListeners.messages_marked_as_read?.(data);
     });
 
+    this.socket.on('message_edited', (message) => {
+      this.eventListeners.message_edited?.(message);
+    });
+
+    this.socket.on('message_deleted', (data) => {
+      this.eventListeners.message_deleted?.(data);
+    });
+
+    this.socket.on('edit_message_error', (data) => {
+      this.eventListeners.edit_message_error?.(data);
+    });
+
+    this.socket.on('delete_message_error', (data) => {
+      this.eventListeners.delete_message_error?.(data);
+    });
+
     return this.socket;
   }
 
@@ -220,5 +240,13 @@ export class SocketService {
   addUserToGroup(conversationId: string, userId: string, addedBy: string): void {
     const data: AddUserToGroupData = { conversationId, userId, addedBy };
     this.emit('add_user_to_group', data);
+  }
+
+  editMessage(messageId: string, newContent: string, userId: string): void {
+    this.emit('edit_message', { messageId, newContent, userId });
+  }
+
+  deleteMessage(messageId: string, userId: string): void {
+    this.emit('delete_message', { messageId, userId });
   }
 } 

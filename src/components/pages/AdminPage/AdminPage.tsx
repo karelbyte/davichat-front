@@ -138,6 +138,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser }) => {
         throw new Error('Error al cargar mensajes');
       }
     } catch (error) {
+      console.log(error);
       toast.error('Error al cargar mensajes');
     }
   };

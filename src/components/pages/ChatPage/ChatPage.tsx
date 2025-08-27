@@ -6,6 +6,8 @@ import { MessageBubble } from '../../molecules/MessageBubble/MessageBubble';
 import { FileMessage } from '../../molecules/FileMessage/FileMessage';
 import { IconButton } from '../../atoms/IconButton/IconButton';
 import { Modal } from '../../atoms/Modal/Modal';
+import { EditMessageModal } from '../../atoms/EditMessageModal/EditMessageModal';
+import { DeleteMessageModal } from '../../atoms/DeleteMessageModal/DeleteMessageModal';
 import { CreateGroupForm } from '../../molecules/CreateGroupForm/CreateGroupForm';
 import { AddParticipantsForm } from '../../molecules/AddParticipantsForm/AddParticipantsForm';
 import { Header } from '../../organisms/Header/Header';
@@ -15,6 +17,8 @@ import { useAuth } from '../../../contexts/auth.context';
 import { User, Conversation } from '../../../services/api';
 import { Message } from '../../../services/types';
 import { AiOutlineUserAdd } from "react-icons/ai";
+import { CiSaveDown2 } from "react-icons/ci";
+import { MdDelete } from 'react-icons/md';
 
 interface ChatPageProps {
   currentUser?: User;
@@ -42,11 +46,17 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
     stopTyping,
     createGroup,
     addUserToGroup,
+    editMessage,
+    deleteMessage,
     retryLoad,
   } = useChat(currentUser || null, socketService);
 
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [showAddParticipantsModal, setShowAddParticipantsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [editingMessage, setEditingMessage] = useState<{ id: string; content: string } | null>(null);
+  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
   const [unreadNotifications, setUnreadNotifications] = useState<Array<{
     senderId: string;
     senderName: string;
@@ -82,6 +92,28 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
 
   const handleCreateGroup = () => {
     setShowCreateGroupModal(true);
+  };
+
+  const handleEditMessage = (messageId: string, currentContent: string) => {
+    setEditingMessage({ id: messageId, content: currentContent });
+    setShowEditModal(true);
+  };
+
+  const handleDeleteMessage = (messageId: string) => {
+    setDeletingMessageId(messageId);
+    setShowDeleteModal(true);
+  };
+
+  const handleSaveEdit = (newContent: string) => {
+    if (editingMessage) {
+      editMessage(editingMessage.id, newContent);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (deletingMessageId) {
+      deleteMessage(deletingMessageId);
+    }
   };
 
   const handleNotificationClick = (conversationId: string, senderId: string) => {
@@ -149,33 +181,68 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
       ? users.find(u => u.id === message.senderId)?.name || 'Usuario'
       : undefined;
 
-    if (message.messageType === 'file' || message.messageType === 'audio') {
+    // Función para verificar si el mensaje se puede editar/eliminar (dentro de 5 minutos)
+    const isMessageEditable = (timestamp: string) => {
+      const messageTime = new Date(timestamp).getTime();
+      const currentTime = new Date().getTime();
+      const timeDifference = currentTime - messageTime;
+      const fiveMinutes = 5 * 60 * 1000; // 5 minutos en milisegundos
+      return timeDifference <= fiveMinutes;
+    };
+
+        if (message.messageType === 'file') {
       try {
         const fileData = JSON.parse(message.content);
         return (
           <div key={message.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-4 px-2`}>
             <div className="flex flex-col">
-                      <div className={`flex items-center gap-2 mb-1 ${
-          isOwnMessage ? 'justify-end' : 'justify-start'
-        }`}>
+                              <div className={`flex items-center gap-2 mb-1 ${
+            isOwnMessage ? 'justify-end' : 'justify-start'
+          }`}>
           {isGroupConversation && !isOwnMessage && (
             <div className="text-xs font-medium text-gray-600">
               {senderName}
             </div>
           )}
-                     <div className="text-xs text-gray-500">
-             {new Date(message.timestamp).toLocaleTimeString()}
-           </div>
+                      <div className="text-xs text-gray-500">
+              {new Date(message.timestamp).toLocaleTimeString()}
+            </div>
+            <div className="flex items-center gap-1 ml-2">
+              <a 
+                href={fileData.fileUrl} 
+                target="_blank" 
+                className="text-gray-400 hover:text-blue-500 transition-colors p-1"
+                title="Descargar archivo"
+              >
+                <CiSaveDown2/>
+              </a>
+              {isOwnMessage && isMessageEditable(message.timestamp) && (
+                <button
+                  onClick={() => handleDeleteMessage(message.id)}
+                  className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                  title="Eliminar mensaje"
+                >
+                 <MdDelete />
+                </button>
+              )}
+            </div>
         </div>
               <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                 isOwnMessage ? 'border border-blue-600 text-gray-800' : 'border border-gray-200 text-gray-800'
               }`}>
-                <FileMessage fileData={fileData} isOwnMessage={isOwnMessage} />
+                <FileMessage 
+                  fileData={fileData} 
+                  isOwnMessage={isOwnMessage} 
+                  onDeleteMessage={handleDeleteMessage}
+                  messageId={message.id}
+                  timestamp={message.timestamp}
+                />
               </div>
             </div>
           </div>
         );
       } catch (error) {
+        console.log(error);
         // Si falla el parsing, mostrar el mensaje como texto
         return (
           <MessageBubble
@@ -184,6 +251,66 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
             isOwnMessage={isOwnMessage}
             senderName={senderName}
             isGroupConversation={isGroupConversation}
+            onEditMessage={handleEditMessage}
+            onDeleteMessage={handleDeleteMessage}
+          />
+        );
+      }
+    }
+
+    if (message.messageType === 'audio') {
+      try {
+        const fileData = JSON.parse(message.content);
+        return (
+          <div key={message.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-4 px-2`}>
+            <div className="flex flex-col">
+              <div className={`flex items-center gap-2 mb-1 ${
+                isOwnMessage ? 'justify-end' : 'justify-start'
+              }`}>
+                {isGroupConversation && !isOwnMessage && (
+                  <div className="text-xs font-medium text-gray-600">
+                    {senderName}
+                  </div>
+                )}
+                <div className="text-xs text-gray-500">
+                  {new Date(message.timestamp).toLocaleTimeString()}
+                </div>
+                {isOwnMessage && isMessageEditable(message.timestamp) && (
+                  <button
+                    onClick={() => handleDeleteMessage(message.id)}
+                    className="text-gray-400 hover:text-red-500 transition-colors p-1 ml-2"
+                    title="Eliminar mensaje"
+                  >
+                    <MdDelete />
+                  </button>
+                )}
+              </div>
+              <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                isOwnMessage ? 'border border-blue-600 text-gray-800' : 'border border-gray-200 text-gray-800'
+              }`}>
+                <FileMessage 
+                  fileData={fileData} 
+                  isOwnMessage={isOwnMessage} 
+                  onDeleteMessage={handleDeleteMessage}
+                  messageId={message.id}
+                  timestamp={message.timestamp}
+                />
+              </div>
+            </div>
+          </div>
+        );
+      } catch (error) {
+        // Si falla el parsing, mostrar el mensaje como texto
+        console.log(error);
+        return (
+          <MessageBubble
+            key={message.id}
+            message={message}
+            isOwnMessage={isOwnMessage}
+            senderName={senderName}
+            isGroupConversation={isGroupConversation}
+            onEditMessage={handleEditMessage}
+            onDeleteMessage={handleDeleteMessage}
           />
         );
       }
@@ -196,6 +323,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
          isOwnMessage={isOwnMessage}
          senderName={senderName}
          isGroupConversation={isGroupConversation}
+         onEditMessage={handleEditMessage}
+         onDeleteMessage={handleDeleteMessage}
        />
     );
   };
@@ -331,25 +460,48 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
         </Modal>
       )}
 
-      {showAddParticipantsModal && currentConversation && (
-        <Modal
-          isOpen={showAddParticipantsModal}
-          onClose={() => setShowAddParticipantsModal(false)}
-        >
-          <AddParticipantsForm
-            users={users}
-            currentUserId={currentUser.id}
-            currentConversation={currentConversation}
-            onSubmit={(participants) => {
-              participants.forEach(userId => {
-                addUserToGroup(userId);
-              });
-              setShowAddParticipantsModal(false);
-            }}
-            onCancel={() => setShowAddParticipantsModal(false)}
-          />
-        </Modal>
-      )}
-    </div>
-  );
-}; 
+             {showAddParticipantsModal && currentConversation && (
+         <Modal
+           isOpen={showAddParticipantsModal}
+           onClose={() => setShowAddParticipantsModal(false)}
+         >
+           <AddParticipantsForm
+             users={users}
+             currentUserId={currentUser.id}
+             currentConversation={currentConversation}
+             onSubmit={(participants) => {
+               participants.forEach(userId => {
+                 addUserToGroup(userId);
+               });
+               setShowAddParticipantsModal(false);
+             }}
+             onCancel={() => setShowAddParticipantsModal(false)}
+           />
+         </Modal>
+       )}
+
+       {showEditModal && editingMessage && (
+         <EditMessageModal
+           isOpen={showEditModal}
+           onClose={() => {
+             setShowEditModal(false);
+             setEditingMessage(null);
+           }}
+           currentContent={editingMessage.content}
+           onSave={handleSaveEdit}
+         />
+       )}
+
+       {showDeleteModal && deletingMessageId && (
+         <DeleteMessageModal
+           isOpen={showDeleteModal}
+           onClose={() => {
+             setShowDeleteModal(false);
+             setDeletingMessageId(null);
+           }}
+           onConfirm={handleConfirmDelete}
+         />
+       )}
+     </div>
+   );
+ }; 

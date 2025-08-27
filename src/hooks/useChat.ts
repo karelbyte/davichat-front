@@ -70,7 +70,6 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       });
 
       setUnreadCounts(prev => ({ ...prev, [otherUserId]: 0 }));
-      console.log('Private conversation created:', conversation.id, 'Type:', conversation.type);
       localStorage.setItem('selectedConversationId', conversation.id);
       setCurrentConversation(conversation);
       setTypingUsers(new Set());
@@ -145,6 +144,18 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     socketService.addUserToGroup(currentConversation.id, userId, currentUser.id);
   }, [currentConversation, currentUser, socketService]);
 
+  const editMessage = useCallback((messageId: string, newContent: string) => {
+    if (!currentUser || !socketService) return;
+
+    socketService.editMessage(messageId, newContent, currentUser.id);
+  }, [currentUser, socketService]);
+
+  const deleteMessage = useCallback((messageId: string) => {
+    if (!currentUser || !socketService) return;
+
+    socketService.deleteMessage(messageId, currentUser.id);
+  }, [currentUser, socketService]);
+
   useEffect(() => {
     if (!socketService || !currentUser) return;
 
@@ -158,7 +169,10 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
         
         // También actualizar el contador de mensajes no leídos
         if (message.conversationId !== currentConversation?.id) {
-          if (message.conversationId === currentConversation?.id) {
+          // Buscar la conversación para determinar si es privada o de grupo
+          const conversation = conversations.find(c => c.id === message.conversationId);
+          
+          if (conversation && conversation.type === 'private') {
             // Es una conversación privada
             setUnreadCounts(prev => ({
               ...prev,
@@ -273,6 +287,24 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       socketService.on('user_added_to_group', () => {
         loadUsersAndConversations();
       });
+
+      socketService.on('message_edited', (updatedMessage) => {
+        setMessages(prev => prev.map(msg => 
+          msg.id === updatedMessage.id ? updatedMessage : msg
+        ));
+      });
+
+      socketService.on('message_deleted', (data) => {
+        setMessages(prev => prev.filter(msg => msg.id !== data.messageId));
+      });
+
+      socketService.on('edit_message_error', (data) => {
+        alert(`Error editing message: ${data.error}`);
+      });
+
+      socketService.on('delete_message_error', (data) => {
+        alert(`Error deleting message: ${data.error}`);
+      });
     };
 
     setupEventListeners();
@@ -310,6 +342,8 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     stopTyping,
     createGroup,
     addUserToGroup,
+    editMessage,
+    deleteMessage,
     loadUsersAndConversations,
     retryLoad
   };

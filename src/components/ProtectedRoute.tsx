@@ -18,6 +18,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           setChatUser(user);
         })
         .catch((error) => {
+          console.log(error);
           // Error connecting to chat
         })
         .finally(() => {
