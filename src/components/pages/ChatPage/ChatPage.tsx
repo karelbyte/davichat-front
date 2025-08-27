@@ -19,6 +19,7 @@ import { Message } from '../../../services/types';
 import { AiOutlineUserAdd } from "react-icons/ai";
 import { CiSaveDown2 } from "react-icons/ci";
 import { MdDelete } from 'react-icons/md';
+import { TbMessage2Minus } from "react-icons/tb";
 
 interface ChatPageProps {
   currentUser?: User;
@@ -48,7 +49,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
     addUserToGroup,
     editMessage,
     deleteMessage,
+    sendReply,
     retryLoad,
+    requestNotificationPermission,
+    browserNotificationsEnabled,
   } = useChat(currentUser || null, socketService);
 
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
@@ -57,6 +61,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingMessage, setEditingMessage] = useState<{ id: string; content: string } | null>(null);
   const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<{ id: string; content: string } | null>(null);
   const [unreadNotifications, setUnreadNotifications] = useState<Array<{
     senderId: string;
     senderName: string;
@@ -102,6 +107,39 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
   const handleDeleteMessage = (messageId: string) => {
     setDeletingMessageId(messageId);
     setShowDeleteModal(true);
+  };
+
+  const handleReplyMessage = (messageId: string) => {
+    const message = messages.find(m => m.id === messageId);
+    if (message) {
+      let replyContent = message.content;
+      
+      // Si es un mensaje de archivo, mostrar información del usuario + tipo de archivo
+      if (message.messageType === 'file' || message.messageType === 'audio') {
+        try {
+          const fileData = JSON.parse(message.content);
+          const senderName = users.find(u => u.id === message.senderId)?.name || 'Usuario';
+          const fileType = message.messageType === 'audio' ? 'audio' : 'archivo';
+          replyContent = `${senderName} envió un ${fileType}`;
+        } catch (error) {
+          // Si falla el parsing, usar el contenido original
+          replyContent = message.content;
+        }
+      }
+      
+      setReplyingTo({ id: messageId, content: replyContent });
+    }
+  };
+
+  const handleCancelReply = () => {
+    setReplyingTo(null);
+  };
+
+  const handleSendReply = (content: string) => {
+    if (replyingTo && content.trim()) {
+      sendReply(replyingTo.id, content.trim());
+      setReplyingTo(null);
+    }
   };
 
   const handleSaveEdit = (newContent: string) => {
@@ -208,6 +246,13 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
               {new Date(message.timestamp).toLocaleTimeString()}
             </div>
             <div className="flex items-center gap-1 ml-2">
+              <button
+                onClick={() => handleReplyMessage(message.id)}
+                className="text-gray-400 hover:text-green-500 transition-colors p-1"
+                title="Responder al mensaje"
+              >
+                <TbMessage2Minus/>
+              </button>
               <a 
                 href={fileData.fileUrl} 
                 target="_blank" 
@@ -230,13 +275,16 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
               <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                 isOwnMessage ? 'border border-blue-600 text-gray-800' : 'border border-gray-200 text-gray-800'
               }`}>
-                <FileMessage 
-                  fileData={fileData} 
-                  isOwnMessage={isOwnMessage} 
-                  onDeleteMessage={handleDeleteMessage}
-                  messageId={message.id}
-                  timestamp={message.timestamp}
-                />
+                                                  <FileMessage 
+                    fileData={fileData} 
+                    isOwnMessage={isOwnMessage} 
+                    onDeleteMessage={handleDeleteMessage}
+                    onReplyMessage={handleReplyMessage}
+                    messageId={message.id}
+                    timestamp={message.timestamp}
+                    isReply={message.isReply}
+                    replyPreview={message.replyPreview}
+                  />
               </div>
             </div>
           </div>
@@ -253,6 +301,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
             isGroupConversation={isGroupConversation}
             onEditMessage={handleEditMessage}
             onDeleteMessage={handleDeleteMessage}
+            onReplyMessage={handleReplyMessage}
           />
         );
       }
@@ -275,32 +324,44 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
                 <div className="text-xs text-gray-500">
                   {new Date(message.timestamp).toLocaleTimeString()}
                 </div>
-                {isOwnMessage && isMessageEditable(message.timestamp) && (
+                <div className="flex items-center gap-1 ml-2">
                   <button
-                    onClick={() => handleDeleteMessage(message.id)}
-                    className="text-gray-400 hover:text-red-500 transition-colors p-1 ml-2"
-                    title="Eliminar mensaje"
+                    onClick={() => handleReplyMessage(message.id)}
+                    className="text-gray-400 hover:text-green-500 transition-colors p-1"
+                    title="Responder al mensaje"
                   >
-                    <MdDelete />
+                    <TbMessage2Minus/>
                   </button>
-                )}
+                  {isOwnMessage && isMessageEditable(message.timestamp) && (
+                    <button
+                      onClick={() => handleDeleteMessage(message.id)}
+                      className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                      title="Eliminar mensaje"
+                    >
+                      <MdDelete />
+                    </button>
+                  )}
+                </div>
               </div>
               <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                 isOwnMessage ? 'border border-blue-600 text-gray-800' : 'border border-gray-200 text-gray-800'
               }`}>
-                <FileMessage 
-                  fileData={fileData} 
-                  isOwnMessage={isOwnMessage} 
-                  onDeleteMessage={handleDeleteMessage}
-                  messageId={message.id}
-                  timestamp={message.timestamp}
-                />
-              </div>
-            </div>
-          </div>
-        );
-      } catch (error) {
-        // Si falla el parsing, mostrar el mensaje como texto
+                                 <FileMessage 
+                   fileData={fileData} 
+                   isOwnMessage={isOwnMessage} 
+                   onDeleteMessage={handleDeleteMessage}
+                   onReplyMessage={handleReplyMessage}
+                   messageId={message.id}
+                   timestamp={message.timestamp}
+                   isReply={message.isReply}
+                   replyPreview={message.replyPreview}
+                 />
+               </div>
+             </div>
+           </div>
+         );
+       } catch (error) {
+         // Si falla el parsing, mostrar el mensaje como texto
         console.log(error);
         return (
           <MessageBubble
@@ -311,6 +372,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
             isGroupConversation={isGroupConversation}
             onEditMessage={handleEditMessage}
             onDeleteMessage={handleDeleteMessage}
+            onReplyMessage={handleReplyMessage}
           />
         );
       }
@@ -325,6 +387,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
          isGroupConversation={isGroupConversation}
          onEditMessage={handleEditMessage}
          onDeleteMessage={handleDeleteMessage}
+         onReplyMessage={handleReplyMessage}
        />
     );
   };
@@ -333,12 +396,14 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
 
   return (
     <div className="h-screen flex flex-col">
-      <Header 
-        currentUser={currentUser} 
-        onLogout={handleLogout}
-        unreadMessages={unreadNotifications}
-        onNotificationClick={handleNotificationClick}
-      />
+             <Header 
+         currentUser={currentUser} 
+         onLogout={handleLogout}
+         unreadMessages={unreadNotifications}
+         onNotificationClick={handleNotificationClick}
+         onRequestNotificationPermission={requestNotificationPermission}
+         browserNotificationsEnabled={browserNotificationsEnabled}
+       />
       
       <div className="flex flex-1 overflow-hidden">
         <UserList
@@ -413,20 +478,36 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
                 </div>
               </div>
 
-              <div className="bg-white border-t border-gray-200">
-                <TypingIndicator
-                  isVisible={typingUsers.length > 0}
-                  typingUsers={typingUsers.map(userId => 
-                    users.find(u => u.id === userId)?.name || 'Usuario'
-                  )}
-                />
-                <MessageInput
-                  onSendMessage={sendMessage}
-                  onStartTyping={startTyping}
-                  onStopTyping={stopTyping}
-                  currentConversation={currentConversation}
-                />
-              </div>
+                             <div className="bg-white border-t border-gray-200">
+                 {replyingTo && (
+                   <div className="bg-blue-50 border-t border-blue-200 p-3">
+                     <div className="flex items-center justify-between">
+                       <div className="text-sm text-blue-800">
+                         <span className="font-medium">Respondiendo a:</span> {replyingTo.content.substring(0, 50)}{replyingTo.content.length > 50 ? '...' : ''}
+                       </div>
+                       <button
+                         onClick={handleCancelReply}
+                         className="text-blue-600 hover:text-blue-800 text-sm"
+                       >
+                         ✕ Cancelar
+                       </button>
+                     </div>
+                   </div>
+                 )}
+                 <TypingIndicator
+                   isVisible={typingUsers.length > 0}
+                   typingUsers={typingUsers.map(userId => 
+                     users.find(u => u.id === userId)?.name || 'Usuario'
+                   )}
+                 />
+                 <MessageInput
+                   onSendMessage={replyingTo ? handleSendReply : sendMessage}
+                   onStartTyping={startTyping}
+                   onStopTyping={stopTyping}
+                   currentConversation={currentConversation}
+                   placeholder={replyingTo ? `Responder a: ${replyingTo.content.substring(0, 30)}...` : "Escribe un mensaje..."}
+                 />
+               </div>
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center">

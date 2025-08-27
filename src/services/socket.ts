@@ -1,7 +1,7 @@
 import io, { Socket } from 'socket.io-client';
 
 import { config } from '../config/env';
-import { GroupCreated, Message, UnreadMessageGroup, UnreadMessagePrivate, UserAddedToGroup, UserConnected, UserDisconnected, UserLeave, MessageEdited, MessageDeleted, EditMessageError, DeleteMessageError } from './types';
+import { GroupCreated, Message, UnreadMessageGroup, UnreadMessagePrivate, UserAddedToGroup, UserConnected, UserDisconnected, UserLeave, MessageEdited, MessageDeleted, EditMessageError, DeleteMessageError, ReplyReceived, ReplyMessage } from './types';
 import { User } from './api';
 
 const SOCKET_URL = config.wsUrl;
@@ -24,6 +24,7 @@ export interface SocketEvents {
   message_deleted: (data: MessageDeleted) => void;
   edit_message_error: (data: EditMessageError) => void;
   delete_message_error: (data: DeleteMessageError) => void;
+  reply_received: (message: ReplyReceived) => void;
 }
 
 // Tipos para los datos de emisión
@@ -177,6 +178,10 @@ export class SocketService {
       this.eventListeners.delete_message_error?.(data);
     });
 
+    this.socket.on('reply_received', (message) => {
+      this.eventListeners.reply_received?.(message);
+    });
+
     return this.socket;
   }
 
@@ -248,5 +253,9 @@ export class SocketService {
 
   deleteMessage(messageId: string, userId: string): void {
     this.emit('delete_message', { messageId, userId });
+  }
+
+  sendReply(replyData: ReplyMessage): void {
+    this.emit('send_reply', replyData);
   }
 } 

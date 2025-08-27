@@ -1,25 +1,27 @@
 export interface Message {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  recipientId?: string;
+  content: string;
+  messageType: 'text' | 'file' | 'audio';
+  fileUrl?: string;
+  fileName?: string;
+  fileSize?: number;
+  fileType?: string;
+  timestamp: string;
+  isEdited: boolean;
+  isDeleted: boolean;
+  editedAt?: string;
+  replyTo?: string;
+  replyPreview?: string;
+  isReply?: boolean;
+  sender: {
     id: string;
-    conversationId: string;
-    senderId: string;
-    recipientId?: string;
-    content: string;
-    messageType: 'text' | 'file' | 'audio';
-    fileUrl?: string;
-    fileName?: string;
-    fileSize?: number;
-    fileType?: string;
-    timestamp: string;
-    isEdited: boolean;
-    isDeleted: boolean;
-    editedAt?: string;
-    replyTo?: string;
-    sender: {
-      id: string;
-      name: string;
-      avatar?: string;
-    };
-  }
+    name: string;
+    avatar?: string;
+  };
+}
 
 
   export interface TypingIndicator {
@@ -116,5 +118,37 @@ export interface EditMessageError {
 
 export interface DeleteMessageError {
   error: string;
+}
+
+export interface ReplyMessage {
+  conversationId: string;
+  senderId: string;
+  content: string;
+  messageType: 'text' | 'file' | 'audio';
+  replyTo: string;
+}
+
+export interface ReplyReceived {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  content: string;
+  messageType: 'text' | 'file' | 'audio';
+  fileUrl?: string;
+  fileName?: string;
+  fileSize?: number;
+  fileType?: string;
+  timestamp: string;
+  isEdited: boolean;
+  isDeleted: boolean;
+  editedAt?: string;
+  replyTo: string;
+  replyPreview: string;
+  isReply: true;
+  sender: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
 }
   

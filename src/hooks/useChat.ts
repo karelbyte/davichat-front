@@ -14,6 +14,10 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Estado para notificaciones del navegador
+  const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState(false);
+  const [isPageVisible, setIsPageVisible] = useState(true);
+
   const currentConversationRef = useRef<Conversation | null>(null);
 
   useEffect(() => {
@@ -156,6 +160,105 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     socketService.deleteMessage(messageId, currentUser.id);
   }, [currentUser, socketService]);
 
+  // Función para solicitar permisos de notificación
+  const requestNotificationPermission = useCallback(async () => {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      setBrowserNotificationsEnabled(permission === 'granted');
+      return permission === 'granted';
+    }
+    return false;
+  }, []);
+
+  // Función para mostrar notificación del navegador
+  const showBrowserNotification = useCallback((title: string, options: NotificationOptions) => {
+    if (browserNotificationsEnabled && !isPageVisible) {
+      new Notification(title, options);
+    }
+  }, [browserNotificationsEnabled, isPageVisible]);
+
+  // Función para actualizar el título de la pestaña
+  const updatePageTitle = useCallback((unreadCount: number) => {
+    if (unreadCount > 0) {
+      document.title = `(${unreadCount}) DaviChat`;
+    } else {
+      document.title = 'DaviChat';
+    }
+  }, []);
+
+  // Función para reproducir sonido de notificación
+  const playNotificationSound = useCallback(() => {
+    if (!isPageVisible) {
+      try {
+        const audio = new Audio('/notification.mp3'); // Necesitarás agregar este archivo
+        audio.volume = 0.5;
+        audio.play().catch(() => {
+          // Fallback: usar Web Audio API para generar un beep
+          const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          oscillator.frequency.value = 800;
+          oscillator.type = 'sine';
+          gainNode.gain.value = 0.1;
+          
+          oscillator.start();
+          setTimeout(() => {
+            oscillator.stop();
+            audioContext.close();
+          }, 200);
+        });
+      } catch (error) {
+        console.log(error);
+        console.log('No se pudo reproducir sonido de notificación');
+      }
+    }
+  }, [isPageVisible]);
+
+  // Efecto para manejar la visibilidad de la página
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const isVisible = !document.hidden;
+      setIsPageVisible(isVisible);
+      
+      // Si la página se vuelve visible, limpiar el título
+      if (isVisible) {
+        document.title = 'DaviChat';
+      }
+    };
+
+    const handleFocus = () => {
+      setIsPageVisible(true);
+      document.title = 'DaviChat';
+    };
+
+    const handleBlur = () => {
+      setIsPageVisible(false);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, []);
+
+  // Efecto para solicitar permisos de notificación al montar
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      requestNotificationPermission();
+    } else if ('Notification' in window && Notification.permission === 'granted') {
+      setBrowserNotificationsEnabled(true);
+    }
+  }, [requestNotificationPermission]);
+
   useEffect(() => {
     if (!socketService || !currentUser) return;
 
@@ -185,6 +288,29 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
               [message.conversationId]: (prev[message.conversationId] || 0) + 1
             }));
           }
+        }
+
+        // Solo mostrar notificaciones si no es el usuario actual y la página no está visible
+        if (message.senderId !== currentUser?.id && !isPageVisible) {
+          // Buscar el nombre del usuario en el array users
+          const senderUser = users.find(user => user.id === message.senderId);
+          const senderName = senderUser?.name || 'Usuario';
+          
+          // Notificación del navegador
+          showBrowserNotification(
+            `Nuevo mensaje de ${senderName}`,
+            {
+              body: message.content,
+              icon: '/logo.png', // Usar el logo de tu app
+              badge: '/logo.png',
+              tag: `message_${message.conversationId}`,
+              requireInteraction: false,
+              silent: false
+            }
+          );
+
+          // Sonido de notificación
+          playNotificationSound();
         }
       });
 
@@ -305,11 +431,15 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       socketService.on('delete_message_error', (data) => {
         alert(`Error deleting message: ${data.error}`);
       });
+
+      socketService.on('reply_received', (replyMessage) => {
+        setMessages(prev => [...prev, replyMessage]);
+      });
     };
 
     setupEventListeners();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [socketService, currentUser, currentConversation]);
+  }, [socketService, currentUser, currentConversation, conversations, isPageVisible, showBrowserNotification, playNotificationSound]);
 
   useEffect(() => {
     if (!socketService || !currentConversation || !currentUser) return;
@@ -324,6 +454,25 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
   const retryLoad = useCallback(() => {
     loadUsersAndConversations();
   }, [loadUsersAndConversations]);
+
+  const sendReply = useCallback((replyTo: string, content: string, messageType: 'text' | 'file' | 'audio' = 'text') => {
+    if (!currentUser || !socketService || !currentConversation) return;
+    socketService.sendReply({
+      conversationId: currentConversation.id,
+      senderId: currentUser.id,
+      content,
+      messageType,
+      replyTo
+    });
+  }, [currentUser, socketService, currentConversation]);
+
+  // Efecto para actualizar el título de la pestaña cuando cambien los mensajes no leídos
+  useEffect(() => {
+    const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0) +
+                        Object.values(groupUnreadCounts).reduce((sum, count) => sum + count, 0);
+    
+    updatePageTitle(totalUnread);
+  }, [unreadCounts, groupUnreadCounts, updatePageTitle]);
 
   return {
     users,
@@ -344,7 +493,11 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     addUserToGroup,
     editMessage,
     deleteMessage,
+    sendReply,
     loadUsersAndConversations,
-    retryLoad
+    retryLoad,
+    requestNotificationPermission,
+    browserNotificationsEnabled,
+    isPageVisible,
   };
 }; 

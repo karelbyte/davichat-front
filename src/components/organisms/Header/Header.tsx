@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { User } from '../../../services/api';
 import { Avatar } from '../../atoms/Avatar/Avatar';
 import { NotificationBell } from '../../atoms/NotificationBell/NotificationBell';
-
+import { TbAlertCircle } from "react-icons/tb";
+import { TbBellOff } from "react-icons/tb";
 interface UnreadMessage {
   senderId: string;
   senderName: string;
@@ -16,13 +17,17 @@ interface HeaderProps {
   onLogout: () => void;
   unreadMessages: UnreadMessage[];
   onNotificationClick: (conversationId: string, senderId: string) => void;
+  onRequestNotificationPermission?: () => Promise<boolean>;
+  browserNotificationsEnabled?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
   currentUser, 
   onLogout, 
   unreadMessages, 
-  onNotificationClick 
+  onNotificationClick,
+  onRequestNotificationPermission,
+  browserNotificationsEnabled = false
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -51,6 +56,21 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="flex items-center space-x-3">
+          {/* Botón de notificaciones del navegador */}
+          {onRequestNotificationPermission && (
+            <button
+              onClick={onRequestNotificationPermission}
+              className={`p-2 rounded-full transition-colors ${
+                browserNotificationsEnabled 
+                  ? 'text-green-600 hover:text-green-700' 
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+              title={browserNotificationsEnabled ? 'Notificaciones habilitadas' : 'Habilitar notificaciones'}
+            >
+              {browserNotificationsEnabled ? <TbAlertCircle/> : <TbBellOff />}
+            </button>
+          )}
+          
           <NotificationBell
             unreadMessages={unreadMessages}
             onMessageClick={onNotificationClick}

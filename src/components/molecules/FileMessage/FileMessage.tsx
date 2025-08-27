@@ -14,8 +14,11 @@ interface FileMessageProps {
   isOwnMessage: boolean;
   className?: string;
   onDeleteMessage?: (messageId: string) => void;
+  onReplyMessage?: (messageId: string) => void;
   messageId?: string;
   timestamp?: string;
+  isReply?: boolean;
+  replyPreview?: string;
 }
 
 export const FileMessage: React.FC<FileMessageProps> = ({
@@ -23,8 +26,11 @@ export const FileMessage: React.FC<FileMessageProps> = ({
   isOwnMessage,
   className = '',
   onDeleteMessage,
+  onReplyMessage,
   messageId,
-  timestamp
+  timestamp,
+  isReply = false,
+  replyPreview
 }) => {
   // Función para verificar si el mensaje se puede eliminar (dentro de 5 minutos)
   const isMessageEditable = (timestamp: string) => {
@@ -51,12 +57,16 @@ export const FileMessage: React.FC<FileMessageProps> = ({
     return (
       <div className={`mb-2 ${className}`}>
         <div className="relative">
+          {isReply && replyPreview && (
+            <div className="text-xs text-gray-500 mb-2 p-2 bg-gray-100 rounded cursor-pointer hover:bg-gray-200 transition-colors">
+              ↩️ {replyPreview}
+            </div>
+          )}
           <img 
             src={fileData.fileUrl} 
             alt={fileData.fileName} 
             className="max-w-full h-auto rounded"
           />
-
         </div>
         <div className={`text-xs text-gray-500`}>
           📎 {fileData.fileName} ({fileSize})
@@ -67,25 +77,42 @@ export const FileMessage: React.FC<FileMessageProps> = ({
 
   if (isAudio) {
     return (
-      <div className="flex p-3 md:w-60 lg:w-80">
-        <audio controls className="w-full h-10 rounded">
-          <source src={fileData.fileUrl} type={fileData.fileType} />
-          Tu navegador no soporta el elemento de audio.
-        </audio>
+      <div className={`mb-2 ${className}`}>
+        <div className="flex flex-col">
+          {isReply && replyPreview && (
+            <div className="text-xs text-gray-500 mb-2 p-2 bg-gray-100 rounded cursor-pointer hover:bg-gray-200 transition-colors">
+              ↩️ {replyPreview}
+            </div>
+          )}
+          <div className="flex p-3 md:w-60 lg:w-80">
+            <audio controls className="w-full h-10 rounded">
+              <source src={fileData.fileUrl} type={fileData.fileType} />
+              Tu navegador no soporta el elemento de audio.
+            </audio>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center space-x-2 p-2 rounded">
-      <div className="text-2xl">📄</div>
-      <div className="flex-1">
-        <div className="text-sm font-medium">{fileData.fileName}</div>
-        <div className={`text-xs ${isOwnMessage ? 'text-blue-100' : 'text-gray-500'}`}>
-          {fileSize}
+    <div className={`mb-2 ${className}`}>
+      <div className="flex flex-col">
+        {isReply && replyPreview && (
+          <div className="text-xs text-gray-500 mb-2 p-2 bg-gray-100 rounded cursor-pointer hover:bg-gray-200 transition-colors">
+            ↩️ {replyPreview}
+          </div>
+        )}
+        <div className="flex items-center space-x-2 p-2 rounded">
+          <div className="text-2xl">📄</div>
+          <div className="flex-1">
+            <div className="text-sm font-medium">{fileData.fileName}</div>
+            <div className={`text-xs ${isOwnMessage ? 'text-blue-100' : 'text-gray-500'}`}>
+              {fileSize}
+            </div>
+          </div>
         </div>
       </div>
-
     </div>
   );
 }; 

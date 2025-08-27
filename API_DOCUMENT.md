@@ -180,43 +180,195 @@ http://localhost:3000
 #### GET /api/messages/:conversationId
 **Descripción**: Obtener mensajes de una conversación
 
+**Parámetros**:
+- `conversationId`: ID de la conversación
+
+**Respuesta**:
+```json
+[
+  {
+    "id": "uuid",
+    "conversationId": "uuid",
+    "senderId": "uuid",
+    "content": "string",
+    "messageType": "text|file|audio",
+    "timestamp": "2025-01-27T10:00:00.000Z",
+    "isEdited": false,
+    "isDeleted": false,
+    "replyTo": "uuid|null",
+    "replyPreview": "string|null",
+    "isReply": false
+  }
+]
+```
+
+#### GET /api/messages/:messageId/replies ⭐ NEW
+**Descripción**: Obtener todas las respuestas a un mensaje específico
+
+**Parámetros**:
+- `messageId`: ID del mensaje original
+
 **Respuesta**:
 ```json
 {
-  "messages": [
+  "messageId": "uuid",
+  "replies": [
     {
       "id": "uuid",
-      "conversationId": "uuid",
+      "content": "Respuesta al mensaje",
       "senderId": "uuid",
-      "recipientId": "uuid",
-      "content": "string",
-      "messageType": "text|file|audio",
-      "fileUrl": "string|null",
-      "fileName": "string|null",
-      "fileSize": "number|null",
-      "fileType": "string|null",
-      "createdAt": "2024-01-01T00:00:00.000Z"
+      "timestamp": "2025-01-27T10:00:00.000Z",
+      "isReply": true,
+      "replyTo": "uuid"
     }
-  ]
+  ],
+  "repliesCount": 3
 }
+```
+
+#### GET /api/messages/:messageId/with-replies ⭐ NEW
+**Descripción**: Obtener un mensaje específico con todas sus respuestas
+
+**Parámetros**:
+- `messageId`: ID del mensaje
+
+**Respuesta**:
+```json
+{
+  "id": "uuid",
+  "conversationId": "uuid",
+  "senderId": "uuid",
+  "content": "Mensaje original",
+  "messageType": "text",
+  "timestamp": "2025-01-27T10:00:00.000Z",
+  "replies": [
+    {
+      "id": "uuid",
+      "content": "Respuesta 1",
+      "senderId": "uuid",
+      "timestamp": "2025-01-27T10:05:00.000Z"
+    }
+  ],
+  "repliesCount": 1
+}
+```
+
+#### DELETE /api/messages/:id
+**Descripción**: Eliminar un mensaje específico por ID
+
+**Parámetros**:
+- `id`: ID del mensaje a eliminar
+
+**Respuesta**:
+```json
+{
+  "message": "Mensaje eliminado correctamente"
+}
+```
+
+#### DELETE /api/messages
+**Descripción**: Eliminar TODOS los mensajes de la base de datos
+
+**⚠️ ADVERTENCIA**: Esta operación es irreversible y eliminará todos los mensajes del chat
+
+**Respuesta**:
+```json
+{
+  "message": "Todos los mensajes han sido eliminados correctamente",
+  "deletedCount": 150
+}
+```
+
+#### DELETE /api/messages/batch/:batchSize
+**Descripción**: Eliminar mensajes en lotes personalizados (útil para grandes volúmenes)
+
+**Parámetros**:
+- `batchSize`: Tamaño del lote (1-25, máximo permitido por DynamoDB)
+
+**Respuesta**:
+```json
+{
+  "message": "Mensajes eliminados en lotes de 20",
+  "deletedCount": 150,
+  "batchSize": 20
+}
+```
+
+**Uso**:
+```bash
+# Eliminar todos los mensajes
+curl -X DELETE http://localhost:3000/api/messages
+
+# Eliminar en lotes de 20
+curl -X DELETE http://localhost:3000/api/messages/batch/20
+
+# Eliminar en lotes de 10
+curl -X DELETE http://localhost:3000/api/messages/batch/10
 ```
 
 ### Archivos
 
 #### POST /api/upload
-**Descripción**: Subir archivo
+**Descripción**: Subir archivo y enviarlo automáticamente como mensaje en una conversación.
 
-**Body**: `multipart/form-data`
+**Body**:
 - `file`: Archivo a subir
+- `conversationId`: ID de la conversación
+- `senderId`: ID del usuario que envía el mensaje
+- `replyTo`: (Opcional) ID del mensaje al que responde
 
 **Respuesta**:
 ```json
 {
-  "url": "string",
-  "fileName": "string",
-  "fileSize": "number",
-  "fileType": "string"
+  "fileUrl": "/api/files/filename.jpg",
+  "fileName": "original-name.jpg",
+  "fileSize": 12345,
+  "fileType": "image/jpeg",
+  "thumbnailUrl": "/api/files/filename.jpg",
+  "messageId": "uuid-of-created-message",
+  "conversationId": "conversation-uuid",
+  "senderId": "user-uuid",
+  "timestamp": "2025-01-27T10:00:00.000Z",
+  "isReply": true,
+  "replyTo": "uuid-of-original-message"
 }
+```
+
+**Lo que sucede automáticamente:**
+1. El archivo se sube al almacenamiento.
+2. Se crea un mensaje en la base de datos con `messageType: 'file'`.
+3. Si `replyTo` está presente, se crea como reply con metadata especial.
+4. El mensaje se emite a través de WebSocket a todos los participantes de la conversación.
+5. Las notificaciones no leídas se envían a los participantes sin conexión.
+6. Se devuelve la información completa del mensaje al frontend.
+
+**Eventos WebSocket:**
+- `message_received` - Para mensajes normales
+- `reply_received` - Para mensajes que son replies
+- `unread_message_private` / `unread_message_group` - Para notificaciones
+
+**Ejemplo de uso en Frontend:**
+```typescript
+// Subir archivo normal
+const formData = new FormData();
+formData.append('file', file);
+formData.append('conversationId', currentConversation.id);
+formData.append('senderId', currentUser.id);
+
+// Subir archivo como reply
+const formDataReply = new FormData();
+formDataReply.append('file', file);
+formDataReply.append('conversationId', currentConversation.id);
+formDataReply.append('senderId', currentUser.id);
+formDataReply.append('replyTo', messageIdToReplyTo);
+
+const response = await fetch('/api/upload', {
+  method: 'POST',
+  body: formDataReply
+});
+
+// El archivo se sube Y el mensaje se envía automáticamente!
+// Si es reply, se emite como 'reply_received'
 ```
 
 ## Eventos Socket.IO
@@ -663,7 +815,7 @@ interface EventoMensajeNoLeído {
 - **Nombres únicos**: UUID + timestamp
 
 ### Endpoints
-- **POST /api/upload**: Subir archivo
+- **POST /api/upload**: Subir archivo y enviarlo como mensaje automáticamente
 - **GET /uploads/:filename**: Descargar archivo (local)
 
 ## Configuración AWS S3

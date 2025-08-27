@@ -15,6 +15,7 @@ interface MessageInputProps {
   currentConversation: { id: string; type: 'private' | 'group'; name?: string } | null; // Para validar que existe una conversación activa
   disabled?: boolean;
   className?: string;
+  placeholder?: string;
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
@@ -23,7 +24,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   onStopTyping,
   currentConversation,
   disabled = false,
-  className = ''
+  className = '',
+  placeholder = "Escribe un mensaje..."
 }) => {
   const { user } = useAuth();
   const [message, setMessage] = useState('');
@@ -152,7 +154,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       <div className="flex space-x-2">
         <Input
           type="text"
-          placeholder="Escribe un mensaje..."
+          placeholder={placeholder}
           value={message}
           onChange={handleInputChange}
           onKeyPress={handleKeyPress}
