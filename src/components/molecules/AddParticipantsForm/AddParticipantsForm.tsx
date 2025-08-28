@@ -24,7 +24,6 @@ export const AddParticipantsForm: React.FC<AddParticipantsFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedUsers.length === 0) return;
-
     onSubmit(selectedUsers);
   };
 
@@ -54,31 +53,47 @@ export const AddParticipantsForm: React.FC<AddParticipantsFormProps> = ({
             className="mb-3"
           />
           <div className="space-y-2 max-h-48 overflow-y-auto">
-            {availableUsers.map(user => (
-              <div key={user.id} className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id={`add_user_${user.id}`}
-                  value={user.id}
-                  checked={selectedUsers.includes(user.id)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedUsers(prev => [...prev, user.id]);
-                    } else {
-                      setSelectedUsers(prev => prev.filter(id => id !== user.id));
-                    }
-                  }}
-                  className="rounded"
-                />
-                <label htmlFor={`add_user_${user.id}`} className="text-sm text-gray-700">
-                  {user.name}
-                </label>
+            {availableUsers.length === 0 ? (
+              <div className="text-center py-6">
+                <div className="text-gray-400 mb-2">
+                  <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+                {searchTerm ? (
+                  <>
+                    <p className="text-gray-500 font-medium">No se encontraron usuarios</p>
+                    <p className="text-sm text-gray-400 mt-1">Intenta con otro término de búsqueda</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-gray-500 font-medium">No hay usuarios disponibles</p>
+                    <p className="text-sm text-gray-400 mt-1">Todos los usuarios ya están en el grupo</p>
+                  </>
+                )}
               </div>
-            ))}
-            {availableUsers.length === 0 && searchTerm && (
-              <div className="text-sm text-gray-500 text-center py-2">
-                No se encontraron usuarios con &quot;{searchTerm}&quot;
-              </div>
+            ) : (
+              availableUsers.map(user => (
+                <div key={user.id} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={`add_user_${user.id}`}
+                    value={user.id}
+                    checked={selectedUsers.includes(user.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedUsers(prev => [...prev, user.id]);
+                      } else {
+                        setSelectedUsers(prev => prev.filter(id => id !== user.id));
+                      }
+                    }}
+                    className="rounded"
+                  />
+                  <label htmlFor={`add_user_${user.id}`} className="text-sm text-gray-700">
+                    {user.name}
+                  </label>
+                </div>
+              ))
             )}
           </div>
         </div>

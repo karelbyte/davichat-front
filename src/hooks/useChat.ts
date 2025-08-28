@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiService, User, Conversation } from '../services/api';
 import { Message } from '../services/types';
 import { SocketService } from '../services/socket';
+import { toast } from 'react-toastify';
 
 export const useChat = (currentUser: User | null, socketService: SocketService | null) => {
   const [users, setUsers] = useState<User[]>([]);
@@ -406,11 +407,26 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
         });
       });
 
-      socketService.on('group_created', () => {
+      socketService.on('group_created', (data) => {
+        console.log('🎉 Evento group_created recibido:', data);
+        if (data.createdBy === currentUser?.id) {
+          toast.success('Grupo creado con éxito, se envió notificación a los participantes');
+        } else {
+          if (data.participants.includes(currentUser?.id || '')) {
+            toast.info(`Has sido añadido al grupo "${data.name}"`);
+          }
+        }
         loadUsersAndConversations();
       });
 
-      socketService.on('user_added_to_group', () => {
+      socketService.on('user_added_to_group', (data) => {
+        console.log('🎉 Evento user_added_to_group recibido:', data);
+        
+        if (data.userId === currentUser?.id) {
+          const groupName = conversations.find(c => c.id === data.conversationId)?.name || 'grupo';
+          toast.info(`Has sido añadido al grupo "${groupName}"`);
+        }
+        
         loadUsersAndConversations();
       });
 

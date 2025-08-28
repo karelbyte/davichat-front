@@ -1,7 +1,7 @@
 import io, { Socket } from 'socket.io-client';
 
 import { config } from '../config/env';
-import { GroupCreated, Message, UnreadMessageGroup, UnreadMessagePrivate, UserAddedToGroup, UserConnected, UserDisconnected, UserLeave, MessageEdited, MessageDeleted, EditMessageError, DeleteMessageError, ReplyReceived, ReplyMessage } from './types';
+import { GroupCreated, Message, UnreadMessageGroup, UnreadMessagePrivate, UserAddedToGroup, UserJoinedGroup, UserConnected, UserDisconnected, UserLeave, MessageEdited, MessageDeleted, EditMessageError, DeleteMessageError, ReplyReceived, ReplyMessage } from './types';
 import { User } from './api';
 
 const SOCKET_URL = config.wsUrl;
@@ -19,6 +19,7 @@ export interface SocketEvents {
   typing_indicator: (data: { conversationId: string; userId: string; isTyping: boolean }) => void;
   group_created: (data: GroupCreated) => void;
   user_added_to_group: (data: UserAddedToGroup) => void;
+  user_joined_group: (data: UserJoinedGroup) => void;
   messages_marked_as_read: (data: { conversationId: string; userId: string }) => void;
   message_edited: (message: MessageEdited) => void;
   message_deleted: (data: MessageDeleted) => void;

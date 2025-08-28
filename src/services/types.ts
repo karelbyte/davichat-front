@@ -80,8 +80,15 @@ export interface Message {
   export interface UserAddedToGroup {
   conversationId: string;
   conversationName: string;
-  addedUsers: string[];
+  userId: string;
   addedBy: string;
+}
+
+export interface UserJoinedGroup {
+  conversationId: string;
+  userId: string;
+  addedBy: string;
+  timestamp: string;
 }
 
 export interface MessageEdited {

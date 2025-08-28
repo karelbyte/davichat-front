@@ -20,6 +20,7 @@ import { AiOutlineUserAdd } from "react-icons/ai";
 import { CiSaveDown2 } from "react-icons/ci";
 import { MdDelete } from 'react-icons/md';
 import { TbMessage2Minus } from "react-icons/tb";
+import { toast } from 'react-toastify';
 
 interface ChatPageProps {
   currentUser?: User;
@@ -29,6 +30,22 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
   const { getSocketService } = useSocket(currentUser || null);
   const socketService = getSocketService();
   const { logout } = useAuth();
+
+  // Función para truncar emails con más de un punto después de la arroba (igual que en UserCard)
+  const truncateEmail = (email: string): string => {
+    const atIndex = email.indexOf('@');
+    if (atIndex === -1) return email;
+    
+    const domain = email.substring(atIndex + 1);
+    const dotsAfterAt = (domain.match(/\./g) || []).length;
+    
+    if (dotsAfterAt > 1) {
+      const firstDotIndex = domain.indexOf('.');
+      return email.substring(0, atIndex + 1 + firstDotIndex + 1) + '...';
+    }
+    
+    return email;
+  };
   
   const {
     users,
@@ -62,6 +79,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
   const [editingMessage, setEditingMessage] = useState<{ id: string; content: string } | null>(null);
   const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<{ id: string; content: string } | null>(null);
+  const [showGroupMembersModal, setShowGroupMembersModal] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState<Array<{
     senderId: string;
     senderName: string;
@@ -406,20 +424,21 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
        />
       
       <div className="flex flex-1 overflow-hidden">
-        <UserList
-          users={users}
-          conversations={conversations}
-          unreadCounts={unreadCounts}
-          groupUnreadCounts={groupUnreadCounts}
-          currentUserId={currentUser.id}
-          currentConversation={currentConversation}
-          onUserClick={handleUserClick}
-          onGroupClick={handleGroupClick}
-          onCreateGroup={handleCreateGroup}
-          isLoading={isLoading}
-          error={error}
-          onRetry={retryLoad}
-        />
+                 <UserList
+           users={users}
+           conversations={conversations}
+           unreadCounts={unreadCounts}
+           groupUnreadCounts={groupUnreadCounts}
+           currentUserId={currentUser.id}
+           currentConversation={currentConversation}
+           onUserClick={handleUserClick}
+           onGroupClick={handleGroupClick}
+           onGroupDoubleClick={(group) => setShowGroupMembersModal(true)}
+           onCreateGroup={handleCreateGroup}
+           isLoading={isLoading}
+           error={error}
+           onRetry={retryLoad}
+         />
 
         <div className="flex-1 flex flex-col">
           {currentConversation ? (
@@ -433,7 +452,15 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
                             u.id !== currentUser.id && 
                             currentConversation.participants.includes(u.id)
                           )?.name || 'Usuario'}`
-                        : `Conversando en el grupo ${currentConversation.name || 'Sin nombre'}`
+                        : (
+                          <button
+                            onClick={() => setShowGroupMembersModal(true)}
+                            className="hover:text-blue-600 transition-colors cursor-pointer"
+                            title="Ver miembros del grupo"
+                          >
+                            Conversando en el grupo {currentConversation.name || 'Sin nombre'}
+                          </button>
+                        )
                       }
                     </h3>
                   </div>
@@ -555,6 +582,11 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
                  addUserToGroup(userId);
                });
                setShowAddParticipantsModal(false);
+               if (participants.length > 1) { 
+                toast.success('Se añadieron los usuarios al grupo, se enviaron notificaciones a los participantes');
+               } else {
+                toast.success('Se añadió el usuario al grupo, se envió notificación al participante');
+               }
              }}
              onCancel={() => setShowAddParticipantsModal(false)}
            />
@@ -582,6 +614,66 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
            }}
            onConfirm={handleConfirmDelete}
          />
+       )}
+
+       {showGroupMembersModal && currentConversation && (
+         <Modal
+           isOpen={showGroupMembersModal}
+           onClose={() => setShowGroupMembersModal(false)}
+         >
+           <div className="p-6">
+             <h2 className="text-xl font-semibold text-gray-800 mb-4">
+               Miembros del Grupo: {currentConversation.name}
+             </h2>
+             
+                           <div className="max-h-96 overflow-y-auto space-y-3 pr-2">
+                {currentConversation.participants.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-gray-400 mb-2">
+                      <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    </div>
+                    <p className="text-gray-500 font-medium">No hay participantes en el grupo</p>
+                    <p className="text-sm text-gray-400 mt-1">Usa el botón + para agregar usuarios</p>
+                  </div>
+                ) : (
+                  currentConversation.participants.map((participantId) => {
+                    const participant = users.find(u => u.id === participantId);
+                    return (
+                      <div key={participantId} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="relative">
+                          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+                            {participant?.name?.charAt(0)?.toUpperCase() || 'U'}
+                          </div>
+                          <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${
+                            participant?.isOnline ? 'bg-green-500' : 'bg-gray-400'
+                          }`}></div>
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-800">
+                            {participant?.name || 'Usuario desconocido'}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {participant?.email ? truncateEmail(participant.email) : 'Sin email'}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+                           <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setShowGroupMembersModal(false)}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
+                >
+                  Cerrar
+                </button>
+              </div>
+           </div>
+         </Modal>
        )}
      </div>
    );

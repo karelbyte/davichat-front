@@ -15,6 +15,7 @@ interface UserListProps {
   currentConversation: Conversation | null;
   onUserClick: (userId: string) => void;
   onGroupClick: (conversation: Conversation) => void;
+  onGroupDoubleClick?: (conversation: Conversation) => void;
   onCreateGroup: () => void;
   isLoading?: boolean;
   error?: string | null;
@@ -31,6 +32,7 @@ export const UserList: React.FC<UserListProps> = ({
   currentConversation,
   onUserClick,
   onGroupClick,
+  onGroupDoubleClick,
   onCreateGroup,
   isLoading = false,
   error,
@@ -181,6 +183,7 @@ export const UserList: React.FC<UserListProps> = ({
                     unreadCount={groupUnreadCounts[group.id] || 0}
                     isSelected={isGroupSelected(group.id)}
                     onClick={() => handleGroupClick(group)}
+                    onDoubleClick={() => onGroupDoubleClick?.(group)}
                   />
                 </div>
               ))}

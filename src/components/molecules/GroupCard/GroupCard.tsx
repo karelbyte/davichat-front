@@ -8,6 +8,7 @@ interface GroupCardProps {
   unreadCount?: number;
   isSelected?: boolean;
   onClick?: () => void;
+  onDoubleClick?: () => void;
   className?: string;
 }
 
@@ -16,6 +17,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({
   unreadCount = 0,
   isSelected = false,
   onClick,
+  onDoubleClick,
   className = ''
 }) => {
   const participantCount = group.participants?.length || 0;
@@ -26,6 +28,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({
         isSelected ? 'bg-blue-50 border-l-4 border-blue-500' : ''
       } ${className}`}
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
