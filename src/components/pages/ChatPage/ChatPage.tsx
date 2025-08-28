@@ -582,11 +582,11 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
                  addUserToGroup(userId);
                });
                setShowAddParticipantsModal(false);
-               if (participants.length > 1) { 
+              /* if (participants.length > 1) { 
                 toast.success('Se añadieron los usuarios al grupo, se enviaron notificaciones a los participantes');
                } else {
                 toast.success('Se añadió el usuario al grupo, se envió notificación al participante');
-               }
+               }*/
              }}
              onCancel={() => setShowAddParticipantsModal(false)}
            />

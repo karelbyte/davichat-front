@@ -2,7 +2,6 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Modal } from '../Modal/Modal';
 import { IconButton } from '../IconButton/IconButton';
 import { AiOutlinePaperClip, AiOutlineClose } from "react-icons/ai";
-import { apiService, FileUploadResponse } from '../../../services/api';
 
 interface FileUploadModalProps {
   isOpen: boolean;
@@ -18,7 +17,6 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
   className = ''
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -32,18 +30,44 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
     setIsDragOver(false);
   }, []);
 
+  const handleFiles = useCallback(async (files: File[]) => {
+    if (files.length === 0) return;
+
+    const validFiles = files.filter(validateFile);
+    if (validFiles.length === 0) return;
+
+    try {
+      for (const file of validFiles) {
+        // Pasar el archivo directamente al callback
+        onFileUpload(file);
+        setUploadedFiles(prev => [...prev, file]);
+      }
+      // Cerrar la modal automáticamente después de procesar todos los archivos
+      setTimeout(() => {
+        handleClose();
+      }, 1000); // Pequeño delay para que el usuario vea que se procesó exitosamente
+    } catch (error) {
+      console.log(error);
+      // Error processing files
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }, [onFileUpload]);
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
     
     const files = Array.from(e.dataTransfer.files);
     handleFiles(files);
-  }, []);
+  }, [handleFiles]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     handleFiles(files);
-  }, []);
+  }, [handleFiles]);
 
   const validateFile = (file: File): boolean => {
     const maxSize = 10 * 1024 * 1024;
@@ -69,36 +93,8 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
     return true;
   };
 
-  const handleFiles = async (files: File[]) => {
-    if (files.length === 0) return;
-
-    const validFiles = files.filter(validateFile);
-    if (validFiles.length === 0) return;
-
-    try {
-      for (const file of validFiles) {
-        // Pasar el archivo directamente al callback
-        onFileUpload(file);
-        setUploadedFiles(prev => [...prev, file]);
-      }
-      // Cerrar la modal automáticamente después de procesar todos los archivos
-      setTimeout(() => {
-        handleClose();
-      }, 1000); // Pequeño delay para que el usuario vea que se procesó exitosamente
-    } catch (error) {
-      console.log(error);
-      // Error processing files
-    } finally {
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
   const handleAreaClick = () => {
-    if (!isUploading) {
-      fileInputRef.current?.click();
-    }
+    fileInputRef.current?.click();
   };
 
   const handleClose = () => {
@@ -142,13 +138,6 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
             PNG, JPG, PDF, DOC, DOCX, TXT, MP3, MP4 hasta 10MB
           </p>
         </div>
-
-        {isUploading && (
-          <div className="mt-4 text-center">
-            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-            <p className="text-sm text-gray-600 mt-2">Subiendo archivos...</p>
-          </div>
-        )}
 
         {uploadedFiles.length > 0 && (
           <div className="mt-4">

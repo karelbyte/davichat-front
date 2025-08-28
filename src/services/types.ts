@@ -82,6 +82,19 @@ export interface Message {
   conversationName: string;
   userId: string;
   addedBy: string;
+  updatedParticipants: string[];
+  participantCount: number;
+  timestamp: string;
+}
+
+export interface GroupParticipantsUpdated {
+  conversationId: string;
+  conversationName: string;
+  participants: string[];
+  participantCount: number;
+  updatedAt: string;
+  action: 'add' | 'remove' | 'bulk_update';
+  affectedUsers: string[];
 }
 
 export interface UserJoinedGroup {

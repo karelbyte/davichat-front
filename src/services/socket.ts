@@ -1,7 +1,7 @@
 import io, { Socket } from 'socket.io-client';
 
 import { config } from '../config/env';
-import { GroupCreated, Message, UnreadMessageGroup, UnreadMessagePrivate, UserAddedToGroup, UserJoinedGroup, UserConnected, UserDisconnected, UserLeave, MessageEdited, MessageDeleted, EditMessageError, DeleteMessageError, ReplyReceived, ReplyMessage } from './types';
+import { GroupCreated, Message, UnreadMessageGroup, UnreadMessagePrivate, UserAddedToGroup, UserJoinedGroup, UserConnected, UserDisconnected, UserLeave, MessageEdited, MessageDeleted, EditMessageError, DeleteMessageError, ReplyReceived, ReplyMessage, GroupParticipantsUpdated } from './types';
 import { User } from './api';
 
 const SOCKET_URL = config.wsUrl;
@@ -26,6 +26,7 @@ export interface SocketEvents {
   edit_message_error: (data: EditMessageError) => void;
   delete_message_error: (data: DeleteMessageError) => void;
   reply_received: (message: ReplyReceived) => void;
+  group_participants_updated: (data: GroupParticipantsUpdated) => void;
 }
 
 // Tipos para los datos de emisión
@@ -156,6 +157,14 @@ export class SocketService {
     });
 
     this.socket.on('user_added_to_group', (data) => {
+      // 🔵 LOG PARA DEBUGGING - SOCKET SERVICE
+      console.log('🔵 SOCKET SERVICE: user_added_to_group recibido', {
+        timestamp: new Date().toISOString(),
+        conversationId: data.conversationId,
+        conversationName: data.conversationName,
+        userId: data.userId,
+        addedBy: data.addedBy
+      });
       this.eventListeners.user_added_to_group?.(data);
     });
 
@@ -181,6 +190,19 @@ export class SocketService {
 
     this.socket.on('reply_received', (message) => {
       this.eventListeners.reply_received?.(message);
+    });
+
+    this.socket.on('group_participants_updated', (data) => {
+      // 🟡 LOG PARA DEBUGGING - SOCKET SERVICE
+      console.log('🟡 SOCKET SERVICE: group_participants_updated recibido', {
+        timestamp: new Date().toISOString(),
+        conversationId: data.conversationId,
+        conversationName: data.conversationName,
+        action: data.action,
+        affectedUsers: data.affectedUsers,
+        participantCount: data.participantCount
+      });
+      this.eventListeners.group_participants_updated?.(data);
     });
 
     return this.socket;

@@ -1,6 +1,5 @@
 import React from 'react';
-import { CiSaveDown2 } from "react-icons/ci";
-import { MdDelete } from 'react-icons/md';
+
 interface FileData {
   fileUrl: string;
   fileName: string;
@@ -40,6 +39,7 @@ export const FileMessage: React.FC<FileMessageProps> = ({
     const fiveMinutes = 5 * 60 * 1000; // 5 minutos en milisegundos
     return timeDifference <= fiveMinutes;
   };
+
   // FileMessage rendering with data
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';

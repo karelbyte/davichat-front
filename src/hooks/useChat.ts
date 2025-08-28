@@ -21,6 +21,52 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
 
   const currentConversationRef = useRef<Conversation | null>(null);
 
+  // 🔧 SISTEMA DE DEDUPLICACIÓN PARA EVENTOS DUPLICADOS
+  // Función para generar clave única del evento
+  const generateEventKey = (eventType: string, data: { conversationId: string; userId?: string; action?: string; timestamp?: string; updatedAt?: string }) => {
+    const timeKey = data.timestamp || data.updatedAt || 'unknown';
+    return `${eventType}_${data.conversationId}_${data.userId || data.action}_${timeKey}`;
+  };
+
+  // Función para verificar si el evento es duplicado
+  const isDuplicateEvent = (eventType: string, data: { conversationId: string; userId?: string; action?: string; timestamp?: string; updatedAt?: string }): boolean => {
+    try {
+      const eventKey = generateEventKey(eventType, data);
+      const recentEvents = JSON.parse(sessionStorage.getItem('recentEvents') || '{}');
+      const now = Date.now();
+      
+      // Limpiar eventos antiguos (más de 5 segundos)
+      Object.keys(recentEvents).forEach(key => {
+        if (now - recentEvents[key] > 5000) {
+          delete recentEvents[key];
+        }
+      });
+      
+      // Verificar si ya existe
+      if (recentEvents[eventKey]) {
+        console.log(`🚫 EVENTO DUPLICADO FILTRADO: ${eventType}`, data);
+        return true; // Es duplicado
+      }
+      
+      // Guardar nuevo evento
+      recentEvents[eventKey] = now;
+      sessionStorage.setItem('recentEvents', JSON.stringify(recentEvents));
+      
+      console.log(`✅ EVENTO NUEVO PROCESADO: ${eventType}`, data);
+      return false; // No es duplicado
+    } catch (error) {
+      console.error('Error en deduplicación:', error);
+      return false; // En caso de error, permitir el evento
+    }
+  };
+
+  // Función para mostrar toast solo si no es duplicado
+  const showToastIfNotDuplicate = (eventType: string, data: { conversationId: string; userId?: string; action?: string; timestamp?: string; updatedAt?: string }, toastFunction: () => void) => {
+    if (!isDuplicateEvent(eventType, data)) {
+      toastFunction();
+    }
+  };
+
   useEffect(() => {
     currentConversationRef.current = currentConversation;
   }, [currentConversation]);
@@ -85,7 +131,6 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
   }, [currentUser, loadMessages]);
 
   const joinConversation = useCallback((conversation: Conversation) => {
-    console.log('Conversation selected:', conversation.id, 'Type:', conversation.type, 'Name:', conversation.name);
     localStorage.setItem('selectedConversationId', conversation.id);
     setCurrentConversation(conversation);
     setTypingUsers(new Set());
@@ -408,7 +453,6 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       });
 
       socketService.on('group_created', (data) => {
-        console.log('🎉 Evento group_created recibido:', data);
         if (data.createdBy === currentUser?.id) {
           toast.success('Grupo creado con éxito, se envió notificación a los participantes');
         } else {
@@ -420,14 +464,71 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       });
 
       socketService.on('user_added_to_group', (data) => {
-        console.log('🎉 Evento user_added_to_group recibido:', data);
-        
-        if (data.userId === currentUser?.id) {
-          const groupName = conversations.find(c => c.id === data.conversationId)?.name || 'grupo';
-          toast.info(`Has sido añadido al grupo "${groupName}"`);
+        // 🔵 LOG PARA DEBUGGING - EVENTO user_added_to_group
+
+
+        // ✅ TOAST CON DEDUPLICACIÓN
+        if (data.addedBy === currentUser?.id) {
+          const addedUserName = users.find(u => u.id === data.userId)?.name || 'Usuario';
+          showToastIfNotDuplicate('user_added_to_group', data, () => {
+            toast.success(`Se añadió a ${addedUserName} al grupo, se le envió notificación`);
+          });
         }
         
-        loadUsersAndConversations();
+        if (data.userId === currentUser?.id) {
+          showToastIfNotDuplicate('user_added_to_group', data, () => {
+            toast.info(`Has sido añadido al grupo "${data.conversationName}"`);
+          });
+          
+          // Si el usuario fue añadido, necesitamos recargar sus conversaciones
+          // para que vea el grupo en su lista
+          loadUsersAndConversations();
+        }
+        
+        // ✅ ACTUALIZAR ESTADO LOCAL INMEDIATAMENTE para todos los usuarios
+        setConversations(prev => prev.map(conv => 
+          conv.id === data.conversationId 
+            ? { 
+                ...conv, 
+                participants: data.updatedParticipants || [...conv.participants, data.userId],
+                updatedAt: data.timestamp
+              }
+            : conv
+        ));
+        
+        // También actualizar el usuario actual si está en la conversación
+        if (currentConversation?.id === data.conversationId) {
+          setCurrentConversation(prev => prev ? {
+            ...prev,
+            participants: data.updatedParticipants || [...prev.participants, data.userId],
+            updatedAt: data.timestamp
+          } : null);
+        }
+      });
+
+      socketService.on('group_participants_updated', (data) => {
+        // 🟡 LOG PARA DEBUGGING - EVENTO group_participants_updated
+
+        // ✅ ACTUALIZAR ESTADO LOCAL INMEDIATAMENTE para todos los usuarios
+        setConversations(prev => prev.map(conv => 
+          conv.id === data.conversationId 
+            ? { 
+                ...conv, 
+                participants: data.participants,
+                updatedAt: data.updatedAt
+              }
+            : conv
+        ));
+        
+        // También actualizar el usuario actual si está en la conversación
+        if (currentConversation?.id === data.conversationId) {
+          setCurrentConversation(prev => prev ? {
+            ...prev,
+            participants: data.participants,
+            updatedAt: data.updatedAt
+          } : null);
+        }
+
       });
 
       socketService.on('message_edited', (updatedMessage) => {
