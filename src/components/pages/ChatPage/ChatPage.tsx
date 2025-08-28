@@ -155,7 +155,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
 
   const handleSendReply = (content: string) => {
     if (replyingTo && content.trim()) {
-      sendReply(replyingTo.id, content.trim());
+      sendReply(replyingTo.id, content.trim(), 'text');
       setReplyingTo(null);
     }
   };

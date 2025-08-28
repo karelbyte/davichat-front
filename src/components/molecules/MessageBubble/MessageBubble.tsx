@@ -77,11 +77,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           </div>
         </div>
         {message.isReply && message.replyPreview && (
-          <div className="text-xs text-gray-500 p-2 bg-gray-100 rounded  hover:bg-gray-200 transition-colors">
+          <div className="max-w-xs text-xs text-gray-500 p-2 rounded-t-lg bg-gray-100 border-gray-300 transition-colors">
             {message.replyPreview}
           </div>
         )}
-        <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+        <div className={`max-w-xs lg:max-w-md px-4 py-2 ${message.isReply ? 'rounded-b-lg' : 'rounded-lg'}  ${
           isOwnMessage ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'
         }`}>
           <div className="text-sm">
