@@ -24,7 +24,7 @@ export const FloatingAIButton: React.FC = () => {
       setTimeout(() => {
         setIsJumping(false);
       }, 600);
-    }, 10000); // 2 minutos = 120,000ms
+    }, 30000); // 2 minutos = 120,000ms
 
     // Limpiar el interval al desmontar el componente
     return () => clearInterval(interval);
