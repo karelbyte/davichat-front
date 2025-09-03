@@ -21,6 +21,7 @@ import { CiSaveDown2 } from "react-icons/ci";
 import { MdDelete } from 'react-icons/md';
 import { TbMessage2Minus } from "react-icons/tb";
 import { toast } from 'react-toastify';
+import { FloatingAIButton } from '../../atoms/FloatingAIButton/FloatingAIButton';
 
 interface ChatPageProps {
   currentUser?: User;
@@ -675,6 +676,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
            </div>
          </Modal>
        )}
+       
+       <FloatingAIButton />
      </div>
    );
  }; 

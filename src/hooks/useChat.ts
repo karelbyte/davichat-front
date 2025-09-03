@@ -342,11 +342,27 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
           const senderUser = users.find(user => user.id === message.senderId);
           const senderName = senderUser?.name || 'Usuario';
           
+          // Función para generar el cuerpo de la notificación basado en el tipo de mensaje
+          const getNotificationBody = (message: Message) => {
+            if (message.messageType === 'file') {
+              try {
+                const fileData = JSON.parse(message.content);
+                return `Envió un archivo: ${fileData.fileName || 'archivo'}`;
+              } catch {
+                return 'Envió un archivo';
+              }
+            } else if (message.messageType === 'audio') {
+              return 'Envió un audio';
+            } else {
+              return message.content; // Para mensajes de texto
+            }
+          };
+          
           // Notificación del navegador
           showBrowserNotification(
             `Nuevo mensaje de ${senderName}`,
             {
-              body: message.content,
+              body: getNotificationBody(message),
               icon: '/logo.png', // Usar el logo de tu app
               badge: '/logo.png',
               tag: `message_${message.conversationId}`,
