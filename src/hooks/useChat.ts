@@ -548,9 +548,18 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       });
 
       socketService.on('message_edited', (updatedMessage) => {
-        setMessages(prev => prev.map(msg => 
-          msg.id === updatedMessage.id ? updatedMessage : msg
-        ));
+        setMessages(prev => prev.map(msg => {
+          if (msg.id === updatedMessage.id) {
+            // Preservar las propiedades de reply si el mensaje original era un reply
+            return {
+              ...updatedMessage,
+              isReply: msg.isReply,
+              replyPreview: msg.replyPreview,
+              replyTo: msg.replyTo
+            };
+          }
+          return msg;
+        }));
       });
 
       socketService.on('message_deleted', (data) => {
@@ -566,7 +575,10 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       });
 
       socketService.on('reply_received', (replyMessage) => {
-        setMessages(prev => [...prev, replyMessage]);
+        // Solo agregar si es de la conversación actual
+        if (replyMessage.conversationId === currentConversation?.id) {
+          setMessages(prev => [...prev, replyMessage]);
+        }
       });
     };
 
