@@ -10,15 +10,43 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [chatUser, setChatUser] = useState<User | null>(null);
   const [isConnectingToChat, setIsConnectingToChat] = useState(false);
 
+  // Función para actualizar el usuario del chat
+  const updateChatUser = (updatedUser: User) => {
+    setChatUser(updatedUser);
+  };
+
   useEffect(() => {
+    
     if (isAuthenticated && !chatUser && !isConnectingToChat) {
       setIsConnectingToChat(true);
       connectToChat()
-        .then((user) => {
-          setChatUser(user);
+        .then(async (user) => {
+          if (user) {
+            // Obtener información actualizada del usuario incluyendo avatar
+            try {
+              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${user.id}`);
+              if (response.ok) {
+                const userData = await response.json();
+                // Actualizar el usuario con la información del servidor
+                const updatedUser = {
+                  ...user,
+                  name: userData.name,
+                  email: userData.email,
+                  avatar: userData.avatar ? `${process.env.NEXT_PUBLIC_API_URL}${userData.avatar.replace('/api', '')}` : undefined
+                };
+                setChatUser(updatedUser);
+              } else {
+                // Si falla la llamada, usar el usuario del chat
+                setChatUser(user);
+              }
+            } catch (error) {
+              console.error('Error al obtener información del usuario:', error);
+              // Si falla la llamada, usar el usuario del chat
+              setChatUser(user);
+            }
+          }
         })
         .catch((error) => {
-          console.log(error);
           // Error connecting to chat
         })
         .finally(() => {
@@ -61,5 +89,5 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  return <ChatPage currentUser={chatUser} />;
+  return <ChatPage currentUser={chatUser} onUpdateUser={updateChatUser} />;
 }; 

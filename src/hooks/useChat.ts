@@ -90,7 +90,14 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       ]);
       
       clearTimeout(timeoutId); // Limpiar timeout si la carga fue exitosa
-      setUsers(usersData);
+      
+      // Construir URLs completas para los avatares de todos los usuarios
+      const usersWithAvatars = usersData.map(user => ({
+        ...user,
+        avatar: user.avatar ? `${process.env.NEXT_PUBLIC_API_URL}${user.avatar.replace('/api', '')}` : undefined
+      }));
+      
+      setUsers(usersWithAvatars);
       setConversations(conversationsData);
                     } catch (error) {
                   clearTimeout(timeoutId); // Limpiar timeout en caso de error

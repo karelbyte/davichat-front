@@ -7,6 +7,7 @@ interface User {
   name: string;
   email: string;
   isOnline?: boolean;
+  avatar?: string;
 }
 
 interface UserCardProps {
@@ -50,7 +51,7 @@ export const UserCard: React.FC<UserCardProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <div className="relative">
-            <Avatar name={user.name} size="md" />
+            <Avatar name={user.name} size="md" src={user.avatar} />
             <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${
               user.isOnline ? 'bg-green-500' : 'bg-gray-400'
             }`}></div>

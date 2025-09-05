@@ -25,9 +25,10 @@ import { FloatingAIButton } from "../../atoms/FloatingAIButton/FloatingAIButton"
 
 interface ChatPageProps {
   currentUser?: User;
+  onUpdateUser?: (user: User) => void;
 }
 
-export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
+export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser }) => {
   const { getSocketService } = useSocket(currentUser || null);
   const socketService = getSocketService();
   const { logout } = useAuth();
@@ -206,6 +207,34 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
           )
       )
     );
+  };
+
+  const handleUpdateProfile = async (data: { name: string; email: string; avatar?: string }) => {
+    try {
+      // Actualizar el currentUser con la nueva información del avatar
+      if (currentUser && onUpdateUser) {
+        // Construir URL completa del avatar si existe
+        const avatarUrl = data.avatar ? `${process.env.NEXT_PUBLIC_API_URL}${data.avatar.replace('/api', '')}` : undefined;
+        
+        const updatedUser = {
+          ...currentUser,
+          name: data.name,
+          email: data.email,
+          avatar: avatarUrl
+        };
+        
+        // Actualizar el estado del usuario en el componente padre
+        onUpdateUser(updatedUser);
+        
+        
+        // Mostrar mensaje de éxito
+        toast.success('Perfil actualizado correctamente');
+      }
+    } catch (error) {
+      console.error('Error al actualizar perfil:', error);
+      toast.error('Error al actualizar el perfil');
+      throw error;
+    }
   };
 
   useEffect(() => {
@@ -469,6 +498,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser }) => {
         onNotificationClick={handleNotificationClick}
         onRequestNotificationPermission={requestNotificationPermission}
         browserNotificationsEnabled={browserNotificationsEnabled}
+        onUpdateProfile={handleUpdateProfile}
       />
 
       <div className="flex flex-1 overflow-hidden">

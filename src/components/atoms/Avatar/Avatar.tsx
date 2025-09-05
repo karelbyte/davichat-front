@@ -4,12 +4,14 @@ interface AvatarProps {
   name: string;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  src?: string;
 }
 
 export const Avatar: React.FC<AvatarProps> = ({
   name,
   size = 'md',
-  className = ''
+  className = '',
+  src
 }) => {
   const getInitials = (name: string) => {
     return name
@@ -27,8 +29,19 @@ export const Avatar: React.FC<AvatarProps> = ({
   };
 
   return (
-    <div className={`bg-blue-600 text-white rounded-full flex items-center justify-center font-medium ${sizeClasses[size]} ${className}`}>
-      {getInitials(name)}
+    <div className={`bg-blue-600 text-white rounded-full flex items-center justify-center font-medium ${sizeClasses[size]} ${className} overflow-hidden`}>
+      {src ? (
+        <img
+          src={src}
+          alt={name}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+          }}
+        />
+      ) : null}
+      <span className={src ? 'hidden' : ''}>{getInitials(name)}</span>
     </div>
   );
 }; 

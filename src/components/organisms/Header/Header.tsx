@@ -2,8 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { User } from '../../../services/api';
 import { Avatar } from '../../atoms/Avatar/Avatar';
 import { NotificationBell } from '../../atoms/NotificationBell/NotificationBell';
+import { ProfileConfigModal } from '../../atoms/ProfileConfigModal/ProfileConfigModal';
 import { TbAlertCircle } from "react-icons/tb";
 import { TbBellOff } from "react-icons/tb";
+import { TbSettings } from "react-icons/tb";
 interface UnreadMessage {
   senderId: string;
   senderName: string;
@@ -19,6 +21,7 @@ interface HeaderProps {
   onNotificationClick: (conversationId: string, senderId: string) => void;
   onRequestNotificationPermission?: () => Promise<boolean>;
   browserNotificationsEnabled?: boolean;
+  onUpdateProfile?: (data: { name: string; email: string; avatar?: string }) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -27,9 +30,11 @@ export const Header: React.FC<HeaderProps> = ({
   unreadMessages, 
   onNotificationClick,
   onRequestNotificationPermission,
-  browserNotificationsEnabled = false
+  browserNotificationsEnabled = false,
+  onUpdateProfile
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -81,7 +86,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="p-2 rounded-full hover:bg-gray-100 transition-colors"
             >
-              <Avatar name={currentUser.name} size="md" />
+              <Avatar name={currentUser.name} size="md" src={currentUser.avatar} />
             </button>
 
             {isMenuOpen && (
@@ -90,6 +95,19 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="px-4 py-2 text-sm text-gray-700 border-b border-gray-100">
                     <div className="font-medium">{currentUser.name}</div>
                   </div>
+                  
+                  {onUpdateProfile && (
+                    <button
+                      onClick={() => {
+                        setIsProfileModalOpen(true);
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors flex items-center"
+                    >
+                      <TbSettings className="mr-2" />
+                      Configuración
+                    </button>
+                  )}
                   
                   <button
                     onClick={() => {
@@ -106,6 +124,15 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       </div>
+      
+      {onUpdateProfile && (
+        <ProfileConfigModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          currentUser={currentUser}
+          onUpdateProfile={onUpdateProfile}
+        />
+      )}
     </header>
   );
 }; 

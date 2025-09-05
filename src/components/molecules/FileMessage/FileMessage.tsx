@@ -63,7 +63,7 @@ export const FileMessage: React.FC<FileMessageProps> = ({
             </div>
           )}
           <img 
-            src={fileData.fileUrl} 
+            src={process.env.NEXT_PUBLIC_API_URL + fileData.fileUrl.replace('/api', '')} 
             alt={fileData.fileName} 
             className="max-w-full h-auto rounded"
           />
@@ -86,7 +86,7 @@ export const FileMessage: React.FC<FileMessageProps> = ({
           )}
           <div className="flex p-3 md:w-60 lg:w-80">
             <audio controls className="w-full h-10 rounded">
-              <source src={fileData.fileUrl} type={fileData.fileType} />
+              <source src={process.env.NEXT_PUBLIC_API_URL + fileData.fileUrl.replace('/api', '')} type={fileData.fileType} />
               Tu navegador no soporta el elemento de audio.
             </audio>
           </div>
