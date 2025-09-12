@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Button } from '@/components/atoms/Button/Button';
 import { Input } from '@/components/atoms/Input/Input';
-import { Send, Settings, Webhook } from 'lucide-react';
+import { FiSend, FiSettings } from 'react-icons/fi';
 import { v4 as uuidv4 } from 'uuid';
 import { cn } from '@/lib/utils';
+
+type WindowWithTimeout = Window & { loadingTimeout?: ReturnType<typeof setTimeout> };
 
 interface Message {
   id: string;
@@ -28,7 +30,6 @@ const ChatIA: React.FC<ChatInterfaceProps> = ({ className }) => {
   // Socket.IO para recibir respuestas en tiempo real
   const SEND_WEBHOOK_URL = process.env.NEXT_PUBLIC_SEND_WEBHOOK_URL as string;
   const RECEIVE_WEBHOOK_URL = process.env.NEXT_PUBLIC_RECEIVE_WEBHOOK_URL as string;
-  const [socket, setSocket] = useState<Socket | null>(null);
   const generateChatId = () => uuidv4();
   const generateMessageId = () => uuidv4();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -55,7 +56,6 @@ const IA_SOCKET = process.env.NEXT_PUBLIC_IA_SOCKET as string;
       transports: ['websocket', 'polling'],
       withCredentials: true,
     });
-    setSocket(newSocket);
     newSocket.on('connect', () => setIsConnected(true));
     newSocket.on('disconnect', () => setIsConnected(false));
     newSocket.on('chat-response', (response: ChatResponse) => {
@@ -68,16 +68,16 @@ const IA_SOCKET = process.env.NEXT_PUBLIC_IA_SOCKET as string;
         };
         setMessages(prev => [...prev, botMessage]);
         setIsLoading(false);
-        if ((window as any).loadingTimeout) {
-          clearTimeout((window as any).loadingTimeout);
-          (window as any).loadingTimeout = null;
+        if ((window as WindowWithTimeout).loadingTimeout) {
+          clearTimeout((window as WindowWithTimeout).loadingTimeout);
+          (window as WindowWithTimeout).loadingTimeout = undefined;
         }
       }
     });
     return () => {
       newSocket.disconnect();
     };
-  }, [currentChatId]);
+  }, [currentChatId, IA_SOCKET]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -97,8 +97,8 @@ const IA_SOCKET = process.env.NEXT_PUBLIC_IA_SOCKET as string;
     setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
     setIsLoading(true);
-  const loadingTimeout = setTimeout(() => setIsLoading(false), 30000);
-  (window as any).loadingTimeout = loadingTimeout;
+  const loadingTimeout: ReturnType<typeof setTimeout> = setTimeout(() => setIsLoading(false), 30000);
+  (window as WindowWithTimeout).loadingTimeout = loadingTimeout;
     try {
       const messageId = generateMessageId();
       // --- LLAMADA AL WEBHOOK DE ENVÍO ---
@@ -111,13 +111,16 @@ const IA_SOCKET = process.env.NEXT_PUBLIC_IA_SOCKET as string;
         body: JSON.stringify({ id: chatId, messageId, chatInput: userMessage.content }),
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    } catch (error) {
+    } catch {
       setIsLoading(false);
-      if ((window as any).loadingTimeout) {
-        clearTimeout((window as any).loadingTimeout);
-        (window as any).loadingTimeout = null;
+      if ((window as WindowWithTimeout).loadingTimeout) {
+        clearTimeout((window as WindowWithTimeout).loadingTimeout);
+        (window as WindowWithTimeout).loadingTimeout = undefined;
       }
-    }
+  }
+
+
+type WindowWithTimeout = Window & { loadingTimeout?: ReturnType<typeof setTimeout> };
   };
 
   const startNewChat = () => {
@@ -168,7 +171,7 @@ const IA_SOCKET = process.env.NEXT_PUBLIC_IA_SOCKET as string;
             onClick={() => setShowSettings(!showSettings)}
             className="gap-2 !bg-[#e20517] text-white"
           >
-            <Settings className="w-4 h-4" />
+            <FiSettings className="w-4 h-4" />
             Configuración
           </Button>
         </div>
@@ -272,7 +275,7 @@ const IA_SOCKET = process.env.NEXT_PUBLIC_IA_SOCKET as string;
             disabled={isLoading || !inputMessage.trim()}
             className="bg-gradient-primary hover:shadow-glow transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Send className="w-4 h-4" />
+            <FiSend className="w-4 h-4" />
           </Button>
         </div>
       </div>
