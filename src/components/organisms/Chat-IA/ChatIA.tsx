@@ -130,7 +130,7 @@ const ChatIA: React.FC<ChatInterfaceProps> = ({ className }) => {
   };
 
   return (
-    <div className={cn('bg-white rounded-lg shadow-lg border border-gray-200 w-full h-full flex flex-col', className)}>
+  <div className={cn('bg-white rounded-lg shadow-lg border border-gray-200 w-full h-full flex flex-col', className)}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-3">
@@ -202,7 +202,7 @@ const ChatIA: React.FC<ChatInterfaceProps> = ({ className }) => {
         </div>
       )}
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+  <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ maxHeight: '60vh', minHeight: '300px', scrollbarWidth: 'thin', overscrollBehavior: 'contain' }}>
         {messages.length === 0 && (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">

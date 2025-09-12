@@ -628,8 +628,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center gap-6">
               {!showIAChat && (
-                <div id="wellcome">
-                  <img src="/logo.png" alt="logo" className="w-12 h-8" />
+                <div id="wellcome" className="flex flex-col items-center">
+                  <img src="/logo.png" alt="logo" className="w-12 h-12 mb-2" />
                   <div className="text-center">
                     <h3 className="text-xl font-semibold text-gray-800 mb-2">
                       Bienvenido al Chat
