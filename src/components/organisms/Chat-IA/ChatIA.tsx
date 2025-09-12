@@ -26,18 +26,22 @@ interface ChatInterfaceProps {
 
 const ChatIA: React.FC<ChatInterfaceProps> = ({ className }) => {
   // Socket.IO para recibir respuestas en tiempo real
+  const SEND_WEBHOOK_URL = process.env.NEXT_PUBLIC_SEND_WEBHOOK_URL as string;
+  const RECEIVE_WEBHOOK_URL = process.env.NEXT_PUBLIC_RECEIVE_WEBHOOK_URL as string;
   const [socket, setSocket] = useState<Socket | null>(null);
   const generateChatId = () => uuidv4();
   const generateMessageId = () => uuidv4();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [sendWebhookUrl, setSendWebhookUrl] = useState(
-    process.env.NEXT_PUBLIC_SEND_WEBHOOK_URL || 'http://ec2-13-59-52-213.us-east-2.compute.amazonaws.com:8080/webhook/ddv-expert-chat'
+    SEND_WEBHOOK_URL
   );
   const [receiveWebhookUrl, setReceiveWebhookUrl] = useState(
-    process.env.NEXT_PUBLIC_RECEIVE_WEBHOOK_URL || 'http://ec2-13-59-52-213.us-east-2.compute.amazonaws.com:8080/webhook/chat-response'
+    RECEIVE_WEBHOOK_URL
   );
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY_IA_CHAT as string;
+const IA_SOCKET = process.env.NEXT_PUBLIC_IA_SOCKET as string;
+
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -46,7 +50,7 @@ const API_KEY = process.env.NEXT_PUBLIC_API_KEY_IA_CHAT as string;
 
   // Conexión a Socket.IO al montar el componente
   useEffect(() => {
-    const socketUrl = 'http://ec2-13-59-52-213.us-east-2.compute.amazonaws.com:3001';
+    const socketUrl = IA_SOCKET;
     const newSocket = io(socketUrl, {
       transports: ['websocket', 'polling'],
       withCredentials: true,
@@ -178,7 +182,7 @@ const API_KEY = process.env.NEXT_PUBLIC_API_KEY_IA_CHAT as string;
             <div>
               <label className="text-xs text-gray-700 mb-1 block">Webhook de Envío</label>
               <Input
-                placeholder="https://tu-webhook-envio.com/endpoint"
+                placeholder={SEND_WEBHOOK_URL}
                 value={sendWebhookUrl}
                 onChange={(e) => setSendWebhookUrl(e.target.value)}
                 className="bg-chat-input border-border"
@@ -187,7 +191,7 @@ const API_KEY = process.env.NEXT_PUBLIC_API_KEY_IA_CHAT as string;
             <div>
               <label className="text-xs text-gray-700 mb-1 block">Webhook de Recepción</label>
               <Input
-                placeholder="http://ec2-13-59-52-213.us-east-2.compute.amazonaws.com:8080/webhook/chat-response"
+                placeholder={RECEIVE_WEBHOOK_URL}
                 value={receiveWebhookUrl}
                 onChange={(e) => setReceiveWebhookUrl(e.target.value)}
                 className="bg-chat-input border-border"
