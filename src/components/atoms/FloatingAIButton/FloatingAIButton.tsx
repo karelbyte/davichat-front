@@ -41,7 +41,7 @@ export const FloatingAIButton: React.FC<FloatingAIButtonProps> = ({ onClick }) =
   return (
     <button
       onClick={handleClick}
-      className={`fixed bottom-26 right-6 w-16 h-16 rounded-full border border-red-400 bg-transparent shadow-md shadow-red-400 hover:shadow-red-600 transition-all duration-300 flex items-center justify-center z-50 ${
+      className={`fixed bottom-26 right-6 w-16 h-16 rounded-full border border-red-400 bg-transparent shadow-md shadow-red-400 hover:shadow-red-600 transition-all duration-300 flex items-center justify-center z-50 bg-white ${
         isJumping ? 'animate-bounce' : ''
       }`}
       title="Asistente IA"

@@ -37,7 +37,7 @@ const ChatIA: React.FC<ChatInterfaceProps> = ({ className }) => {
   const [receiveWebhookUrl, setReceiveWebhookUrl] = useState(
     process.env.NEXT_PUBLIC_RECEIVE_WEBHOOK_URL || 'http://ec2-13-59-52-213.us-east-2.compute.amazonaws.com:8080/webhook/chat-response'
   );
-  const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+const API_KEY = 'ADGGtQ64GgASmbqYySVALuJuhllpFjNb';
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -101,13 +101,12 @@ const ChatIA: React.FC<ChatInterfaceProps> = ({ className }) => {
       const response = await fetch(sendWebhookUrl, {
         method: 'POST',
         headers: {
-          'API-KEY': 'ADGGtQ64GgASmbqYySVALuJuhllpFjNb',
+          'API-KEY': API_KEY,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ id: chatId, messageId, chatInput: userMessage.content }),
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      // Ya no es necesario hacer polling, la respuesta llegará por Socket.IO
     } catch (error) {
       setIsLoading(false);
       if ((window as any).loadingTimeout) {
