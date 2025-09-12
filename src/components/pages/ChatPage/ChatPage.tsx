@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import ChatIA from "../../organisms/Chat-IA/ChatIA";
 import { UserList } from "../../organisms/UserList/UserList";
 import { MessageInput } from "../../organisms/MessageInput/MessageInput";
 import { TypingIndicator } from "../../atoms/TypingIndicator/TypingIndicator";
@@ -29,6 +30,8 @@ interface ChatPageProps {
 }
 
 export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser }) => {
+  const [showIAChat, setShowIAChat] = useState(false);
+  const handleFloatingAIClick = () => setShowIAChat((prev) => !prev);
   const { getSocketService } = useSocket(currentUser || null);
   const socketService = getSocketService();
   const { logout } = useAuth();
@@ -215,18 +218,18 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
       if (currentUser && onUpdateUser) {
         // Construir URL completa del avatar si existe
         const avatarUrl = data.avatar ? `${process.env.NEXT_PUBLIC_API_URL}${data.avatar.replace('/api', '')}` : undefined;
-        
+
         const updatedUser = {
           ...currentUser,
           name: data.name,
           email: data.email,
           avatar: avatarUrl
         };
-        
+
         // Actualizar el estado del usuario en el componente padre
         onUpdateUser(updatedUser);
-        
-        
+
+
         // Mostrar mensaje de éxito
         toast.success('Perfil actualizado correctamente');
       }
@@ -254,9 +257,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
             senderId: userId,
             senderName: user.name,
             conversationId: userId,
-            messageContent: `${count} mensaje${count > 1 ? "s" : ""} no leído${
-              count > 1 ? "s" : ""
-            }`,
+            messageContent: `${count} mensaje${count > 1 ? "s" : ""} no leído${count > 1 ? "s" : ""
+              }`,
             timestamp: new Date().toISOString(),
           });
         }
@@ -271,9 +273,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
             senderId: conversation.createdBy || "",
             senderName: conversation.name || "Grupo",
             conversationId: conversationId,
-            messageContent: `${count} mensaje${count > 1 ? "s" : ""} no leído${
-              count > 1 ? "s" : ""
-            }`,
+            messageContent: `${count} mensaje${count > 1 ? "s" : ""} no leído${count > 1 ? "s" : ""
+              }`,
             timestamp: new Date().toISOString(),
           });
         }
@@ -307,15 +308,13 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
         return (
           <div
             key={message.id}
-            className={`flex ${
-              isOwnMessage ? "justify-end" : "justify-start"
-            } mb-4 px-2`}
+            className={`flex ${isOwnMessage ? "justify-end" : "justify-start"
+              } mb-4 px-2`}
           >
             <div className="flex flex-col">
               <div
-                className={`flex items-center gap-2 mb-1 ${
-                  isOwnMessage ? "justify-end" : "justify-start"
-                }`}
+                className={`flex items-center gap-2 mb-1 ${isOwnMessage ? "justify-end" : "justify-start"
+                  }`}
               >
                 {isGroupConversation && !isOwnMessage && (
                   <div className="text-xs font-medium text-gray-600">
@@ -353,11 +352,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
                 </div>
               </div>
               <div
-                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                  isOwnMessage
-                    ? "border border-blue-600 text-gray-800"
-                    : "border border-gray-200 text-gray-800"
-                }`}
+                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${isOwnMessage
+                  ? "border border-blue-600 text-gray-800"
+                  : "border border-gray-200 text-gray-800"
+                  }`}
               >
                 <FileMessage
                   fileData={fileData}
@@ -397,15 +395,13 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
         return (
           <div
             key={message.id}
-            className={`flex ${
-              isOwnMessage ? "justify-end" : "justify-start"
-            } mb-4 px-2`}
+            className={`flex ${isOwnMessage ? "justify-end" : "justify-start"
+              } mb-4 px-2`}
           >
             <div className="flex flex-col">
               <div
-                className={`flex items-center gap-2 mb-1 ${
-                  isOwnMessage ? "justify-end" : "justify-start"
-                }`}
+                className={`flex items-center gap-2 mb-1 ${isOwnMessage ? "justify-end" : "justify-start"
+                  }`}
               >
                 {isGroupConversation && !isOwnMessage && (
                   <div className="text-xs font-medium text-gray-600">
@@ -435,11 +431,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
                 </div>
               </div>
               <div
-                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                  isOwnMessage
-                    ? "border border-blue-600 text-gray-800"
-                    : "border border-gray-200 text-gray-800"
-                }`}
+                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${isOwnMessage
+                  ? "border border-blue-600 text-gray-800"
+                  : "border border-gray-200 text-gray-800"
+                  }`}
               >
                 <FileMessage
                   fileData={fileData}
@@ -526,12 +521,11 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
                   <div>
                     <h3 className="text-lg text-gray-600">
                       {currentConversation.type === "private" ? (
-                        `Conversando con ${
-                          users.find(
-                            (u) =>
-                              u.id !== currentUser.id &&
-                              currentConversation.participants.includes(u.id)
-                          )?.name || "Usuario"
+                        `Conversando con ${users.find(
+                          (u) =>
+                            u.id !== currentUser.id &&
+                            currentConversation.participants.includes(u.id)
+                        )?.name || "Usuario"
                         }`
                       ) : (
                         <div className="flex flex-col items-start">
@@ -568,18 +562,16 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
                       <div className="text-center">
                         <h3 className="text-lg font-medium text-gray-600 mb-2">
                           {currentConversation.type === "private"
-                            ? `Este es el inicio de tu conversación con ${
-                                users.find(
-                                  (u) =>
-                                    u.id !== currentUser.id &&
-                                    currentConversation.participants.includes(
-                                      u.id
-                                    )
-                                )?.name || "Usuario"
-                              }`
-                            : `Este es el inicio de tu conversación con el grupo ${
-                                currentConversation.name || "Sin nombre"
-                              }`}
+                            ? `Este es el inicio de tu conversación con ${users.find(
+                              (u) =>
+                                u.id !== currentUser.id &&
+                                currentConversation.participants.includes(
+                                  u.id
+                                )
+                            )?.name || "Usuario"
+                            }`
+                            : `Este es el inicio de tu conversación con el grupo ${currentConversation.name || "Sin nombre"
+                            }`}
                         </h3>
                         <p className="text-sm text-gray-500">
                           Envía un mensaje para comenzar a chatear
@@ -635,16 +627,25 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center gap-6">
-              <img src="/logo.png" alt="logo" className="w-12 h-8" />
-              <div className="text-center">
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                  Bienvenido al Chat
-                </h3>
-                <p className="text-gray-600">
-                  Selecciona un usuario para iniciar una conversación o crea un
-                  grupo
-                </p>
-              </div>
+              {!showIAChat && (
+                <div id="wellcome">
+                  <img src="/logo.png" alt="logo" className="w-12 h-8" />
+                  <div className="text-center">
+                    <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                      Bienvenido al Chat
+                    </h3>
+                    <p className="text-gray-600">
+                      Selecciona un usuario para iniciar una conversación o crea un
+                      grupo
+                    </p>
+                  </div>
+                </div>
+              )}
+              {showIAChat && (
+                <div id="iaChat" className="flex items-center justify-center h-full w-full">
+                  <ChatIA />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -763,11 +764,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
                           {participant?.name?.charAt(0)?.toUpperCase() || "U"}
                         </div>
                         <div
-                          className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${
-                            participant?.isOnline
-                              ? "bg-green-500"
-                              : "bg-gray-400"
-                          }`}
+                          className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${participant?.isOnline
+                            ? "bg-green-500"
+                            : "bg-gray-400"
+                            }`}
                         ></div>
                       </div>
                       <div className="flex-1">
@@ -798,7 +798,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
         </Modal>
       )}
 
-      <FloatingAIButton />
+  <FloatingAIButton onClick={handleFloatingAIClick} />
     </div>
   );
 };

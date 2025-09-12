@@ -1,0 +1,266 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Button } from '@/components/atoms/Button/Button';
+import { Input } from '@/components/atoms/Input/Input';
+import { Send, Settings, Webhook } from 'lucide-react';
+import { io } from 'socket.io-client';
+import { v4 as uuidv4 } from 'uuid';
+import { cn } from '@/lib/utils';
+
+interface Message {
+  id: string;
+  content: string;
+  isUser: boolean;
+  timestamp: Date;
+}
+
+interface ChatResponse {
+  id: string;
+  chatOutput: string;
+  timestamp: string;
+  received: boolean;
+}
+
+interface ChatInterfaceProps {
+  className?: string;
+}
+
+const ChatIA: React.FC<ChatInterfaceProps> = ({ className }) => {
+  const generateChatId = () => uuidv4();
+  const generateMessageId = () => uuidv4();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [sendWebhookUrl, setSendWebhookUrl] = useState(
+    process.env.NEXT_PUBLIC_SEND_WEBHOOK_URL || 'http://localhost:6060/webhook/ddv-expert-chat'
+  );
+  const [receiveWebhookUrl, setReceiveWebhookUrl] = useState(
+    process.env.NEXT_PUBLIC_RECEIVE_WEBHOOK_URL || 'http://localhost:6060/webhook/chat-response'
+  );
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [currentChatId, setCurrentChatId] = useState<string>(() => generateChatId());
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  useEffect(() => {
+    const socketUrl = process.env.NEXT_PUBLIC_WS_API_URL || 'http://localhost:6060';
+    const newSocket = io(socketUrl, { path: '/ws' });
+    newSocket.on('connect', () => setIsConnected(true));
+    newSocket.on('disconnect', () => setIsConnected(false));
+    newSocket.on('chat-response', (response: ChatResponse) => {
+      if (response.id === currentChatId) {
+        const botMessage: Message = {
+          id: generateMessageId(),
+          content: response.chatOutput,
+          isUser: false,
+          timestamp: new Date(response.timestamp),
+        };
+        setMessages(prev => [...prev, botMessage]);
+        setIsLoading(false);
+        if ((window as any).loadingTimeout) {
+          clearTimeout((window as any).loadingTimeout);
+          (window as any).loadingTimeout = null;
+        }
+      }
+    });
+    return () => { newSocket.close(); };
+  }, [currentChatId]);
+
+  const sendMessage = async () => {
+    if (!inputMessage.trim() || isLoading || !sendWebhookUrl) return;
+    const chatId = currentChatId;
+    const userMessage: Message = {
+      id: generateMessageId(),
+      content: inputMessage,
+      isUser: true,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, userMessage]);
+    setInputMessage('');
+    setIsLoading(true);
+    const loadingTimeout = setTimeout(() => setIsLoading(false), 30000);
+    (window as any).loadingTimeout = loadingTimeout;
+    try {
+      const messageId = generateMessageId();
+      const response = await fetch(sendWebhookUrl, {
+        method: 'POST',
+        headers: {
+          'API-KEY': 'ADGGtQ64GgASmbqYySVALuJuhllpFjNb',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: chatId, messageId, chatInput: userMessage.content }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    } catch (error) {
+      setIsLoading(false);
+      if ((window as any).loadingTimeout) {
+        clearTimeout((window as any).loadingTimeout);
+        (window as any).loadingTimeout = null;
+      }
+    }
+  };
+
+  const startNewChat = () => {
+    setCurrentChatId(generateChatId());
+    setMessages([]);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  return (
+    <div className={cn('bg-white rounded-lg shadow-lg border border-gray-200 w-full h-full flex flex-col', className)}>
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-gradient-primary">
+            <Webhook className="w-6 h-6 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold text-gray-800">Chat Webhook</h1>
+            <p className="text-sm text-gray-700">Envía y recibe mensajes via webhooks</p>
+            <div className="flex items-center gap-2 mt-1">
+              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <span className="text-xs text-gray-700">
+                {isConnected ? 'Conectado' : 'Desconectado'}
+              </span>
+              <span className="text-xs text-gray-700">•</span>
+              <span className="text-xs text-gray-700">
+                Chat ID: {currentChatId.substring(0, 8)}...
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            onClick={startNewChat}
+            className="gap-2"
+          >
+            Nuevo Chat
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => setShowSettings(!showSettings)}
+            className="gap-2"
+          >
+            <Settings className="w-4 h-4" />
+            Configuración
+          </Button>
+        </div>
+      </div>
+
+      {/* Settings Panel */}
+      {showSettings && (
+        <div className="m-4 p-4 bg-secondary/50 border border-border rounded-lg animate-slide-up">
+          <h3 className="text-sm font-medium text-gray-800 mb-3">Configuración de Webhooks</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs text-gray-700 mb-1 block">Webhook de Envío</label>
+              <Input
+                placeholder="https://tu-webhook-envio.com/endpoint"
+                value={sendWebhookUrl}
+                onChange={(e) => setSendWebhookUrl(e.target.value)}
+                className="bg-chat-input border-border"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-700 mb-1 block">Webhook de Recepción (Local)</label>
+              <Input
+                placeholder="http://ec2-13-59-52-213.us-east-2.compute.amazonaws.com:3001/webhook/chat-response"
+                value={receiveWebhookUrl}
+                onChange={(e) => setReceiveWebhookUrl(e.target.value)}
+                className="bg-chat-input border-border"
+                disabled
+              />
+              <p className="text-xs text-gray-700 mt-1">
+                Este webhook recibe respuestas automáticamente via WebSocket
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.length === 0 && (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mb-4 mx-auto animate-pulse-glow">
+                <Webhook className="w-8 h-8 text-primary-foreground" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-800 mb-2">Bienvenido al Chat Webhook</h3>
+              <p className="text-gray-700">Configura tus webhooks y comienza a chatear</p>
+            </div>
+          </div>
+        )}
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={cn(
+              'flex animate-slide-up',
+              message.isUser ? 'justify-end' : 'justify-start'
+            )}
+          >
+            <div
+              className={cn(
+                'max-w-[70%] p-3 rounded-2xl shadow-soft',
+                message.isUser
+                  ? 'bg-chat-bubble-user text-primary-foreground'
+                  : 'bg-chat-bubble-bot text-gray-800 border border-border'
+              )}
+            >
+              <p className="text-sm text-gray-800">{message.content}</p>
+              <p className="text-xs mt-1 text-gray-700">
+                {message.timestamp.toLocaleTimeString()}
+              </p>
+            </div>
+          </div>
+        ))}
+        {isLoading && (
+          <div className="flex justify-start animate-slide-up">
+            <div className="bg-chat-bubble-bot border border-border p-3 rounded-2xl shadow-soft">
+              <div className="flex items-center space-x-2">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                </div>
+                <span className="text-xs text-gray-700">Esperando respuesta...</span>
+              </div>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+      {/* Input Area */}
+      <div className="p-4 border-t border-border">
+        <div className="flex gap-2">
+          <Input
+            placeholder={isLoading ? "Esperando respuesta..." : "Escribe tu mensaje..."}
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            disabled={isLoading}
+            className="flex-1 bg-chat-input border-border disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+          <Button
+            onClick={sendMessage}
+            disabled={isLoading || !inputMessage.trim()}
+            className="bg-gradient-primary hover:shadow-glow transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Send className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ChatIA;

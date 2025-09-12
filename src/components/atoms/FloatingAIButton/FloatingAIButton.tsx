@@ -1,18 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 
-export const FloatingAIButton: React.FC = () => {
+interface FloatingAIButtonProps {
+  onClick?: () => void;
+}
+
+export const FloatingAIButton: React.FC<FloatingAIButtonProps> = ({ onClick }) => {
   const [isJumping, setIsJumping] = useState(false);
 
   const handleClick = () => {
-    toast.info('En desarrollo', {
-      position: 'top-right',
-      autoClose: 3000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-    });
+    if (onClick) {
+      onClick();
+    } else {
+      toast.info('En desarrollo', {
+        position: 'top-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    }
   };
 
   // Animación de saltito cada 2 minutos
