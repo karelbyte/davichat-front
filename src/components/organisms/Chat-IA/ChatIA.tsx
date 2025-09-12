@@ -37,7 +37,7 @@ const ChatIA: React.FC<ChatInterfaceProps> = ({ className }) => {
   const [receiveWebhookUrl, setReceiveWebhookUrl] = useState(
     process.env.NEXT_PUBLIC_RECEIVE_WEBHOOK_URL || 'http://ec2-13-59-52-213.us-east-2.compute.amazonaws.com:8080/webhook/chat-response'
   );
-const API_KEY = 'ADGGtQ64GgASmbqYySVALuJuhllpFjNb';
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY_IA_CHAT as string;
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
