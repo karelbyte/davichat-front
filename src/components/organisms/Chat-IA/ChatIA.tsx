@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { io, Socket } from 'socket.io-client';
 import { Button } from '@/components/atoms/Button/Button';
 import { Input } from '@/components/atoms/Input/Input';
 import { Send, Settings, Webhook } from 'lucide-react';
@@ -24,29 +25,63 @@ interface ChatInterfaceProps {
 }
 
 const ChatIA: React.FC<ChatInterfaceProps> = ({ className }) => {
+  // Socket.IO para recibir respuestas en tiempo real
+  const [socket, setSocket] = useState<Socket | null>(null);
   const generateChatId = () => uuidv4();
   const generateMessageId = () => uuidv4();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
-    const [sendWebhookUrl, setSendWebhookUrl] = useState(
-      process.env.NEXT_PUBLIC_SEND_WEBHOOK_URL || 'http://ec2-13-59-52-213.us-east-2.compute.amazonaws.com:8080/webhook/ddv-expert-chat'
-    );
-    const [receiveWebhookUrl, setReceiveWebhookUrl] = useState(
-      process.env.NEXT_PUBLIC_RECEIVE_WEBHOOK_URL || 'http://ec2-13-59-52-213.us-east-2.compute.amazonaws.com:8080/webhook/chat-response'
-    );
+  const [sendWebhookUrl, setSendWebhookUrl] = useState(
+    process.env.NEXT_PUBLIC_SEND_WEBHOOK_URL || 'http://ec2-13-59-52-213.us-east-2.compute.amazonaws.com:8080/webhook/ddv-expert-chat'
+  );
+  const [receiveWebhookUrl, setReceiveWebhookUrl] = useState(
+    process.env.NEXT_PUBLIC_RECEIVE_WEBHOOK_URL || 'http://ec2-13-59-52-213.us-east-2.compute.amazonaws.com:8080/webhook/chat-response'
+  );
+  const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [currentChatId, setCurrentChatId] = useState<string>(() => generateChatId());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Conexión a Socket.IO al montar el componente
+  useEffect(() => {
+    const socketUrl = 'http://ec2-13-59-52-213.us-east-2.compute.amazonaws.com:3001';
+    const newSocket = io(socketUrl, {
+      transports: ['websocket', 'polling'],
+      withCredentials: true,
+    });
+    setSocket(newSocket);
+    newSocket.on('connect', () => setIsConnected(true));
+    newSocket.on('disconnect', () => setIsConnected(false));
+    newSocket.on('chat-response', (response: ChatResponse) => {
+      if (response.id === currentChatId) {
+        const botMessage: Message = {
+          id: generateMessageId(),
+          content: response.chatOutput,
+          isUser: false,
+          timestamp: new Date(response.timestamp),
+        };
+        setMessages(prev => [...prev, botMessage]);
+        setIsLoading(false);
+        if ((window as any).loadingTimeout) {
+          clearTimeout((window as any).loadingTimeout);
+          (window as any).loadingTimeout = null;
+        }
+      }
+    });
+    return () => {
+      newSocket.disconnect();
+    };
+  }, [currentChatId]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // ...existing code...
 
   const sendMessage = async () => {
+    // --- WEBHOOK DE ENVÍO ---
     if (!inputMessage.trim() || isLoading || !sendWebhookUrl) return;
     const chatId = currentChatId;
     const userMessage: Message = {
@@ -58,10 +93,11 @@ const ChatIA: React.FC<ChatInterfaceProps> = ({ className }) => {
     setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
     setIsLoading(true);
-    const loadingTimeout = setTimeout(() => setIsLoading(false), 30000);
-    (window as any).loadingTimeout = loadingTimeout;
+  const loadingTimeout = setTimeout(() => setIsLoading(false), 30000);
+  (window as any).loadingTimeout = loadingTimeout;
     try {
       const messageId = generateMessageId();
+      // --- LLAMADA AL WEBHOOK DE ENVÍO ---
       const response = await fetch(sendWebhookUrl, {
         method: 'POST',
         headers: {
@@ -71,49 +107,7 @@ const ChatIA: React.FC<ChatInterfaceProps> = ({ className }) => {
         body: JSON.stringify({ id: chatId, messageId, chatInput: userMessage.content }),
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-
-      // Polling para obtener la respuesta de la IA
-      let attempts = 0;
-      const maxAttempts = 30; // 30 segundos
-      const pollInterval = 1000; // 1 segundo
-      const pollChatResponse = async () => {
-        attempts++;
-        try {
-          const res = await fetch(`${receiveWebhookUrl.replace('/webhook/chat-response', '')}/chat/${chatId}`, {
-            method: 'GET',
-            headers: {
-              'API-KEY': 'ADGGtQ64GgASmbqYySVALuJuhllpFjNb',
-              'Content-Type': 'application/json',
-            },
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data && data.chatOutput) {
-              const botMessage = {
-                id: generateMessageId(),
-                content: data.chatOutput,
-                isUser: false,
-                timestamp: new Date(data.timestamp),
-              };
-              setMessages(prev => [...prev, botMessage]);
-              setIsLoading(false);
-              clearTimeout((window as any).loadingTimeout);
-              (window as any).loadingTimeout = null;
-              return;
-            }
-          }
-        } catch (err) {
-          // Ignorar error y seguir intentando
-        }
-        if (attempts < maxAttempts) {
-          setTimeout(pollChatResponse, pollInterval);
-        } else {
-          setIsLoading(false);
-          clearTimeout((window as any).loadingTimeout);
-          (window as any).loadingTimeout = null;
-        }
-      };
-      pollChatResponse();
+      // Ya no es necesario hacer polling, la respuesta llegará por Socket.IO
     } catch (error) {
       setIsLoading(false);
       if ((window as any).loadingTimeout) {
@@ -213,7 +207,7 @@ const ChatIA: React.FC<ChatInterfaceProps> = ({ className }) => {
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mb-4 mx-auto animate-pulse-glow">
-                 <img src="/ia.png" alt="Logo" className="w-15 h-15 object-contain" />
+                <img src="/ia.png" alt="Logo" className="w-15 h-15 object-contain" />
               </div>
               <h3 className="text-lg font-medium text-gray-800 mb-2">Bienvenido al Chat IA</h3>
               <p className="text-gray-700">Comienza a chatear</p>
