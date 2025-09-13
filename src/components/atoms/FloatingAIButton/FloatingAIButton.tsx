@@ -1,18 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 
-export const FloatingAIButton: React.FC = () => {
+interface FloatingAIButtonProps {
+  onClick?: () => void;
+}
+
+export const FloatingAIButton: React.FC<FloatingAIButtonProps> = ({ onClick }) => {
   const [isJumping, setIsJumping] = useState(false);
 
   const handleClick = () => {
-    toast.info('En desarrollo', {
-      position: 'top-right',
-      autoClose: 3000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-    });
+    if (onClick) {
+      onClick();
+    } else {
+      toast.info('En desarrollo', {
+        position: 'top-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    }
   };
 
   // Animación de saltito cada 2 minutos
@@ -33,7 +41,7 @@ export const FloatingAIButton: React.FC = () => {
   return (
     <button
       onClick={handleClick}
-      className={`fixed bottom-26 right-6 w-16 h-16 rounded-full border border-red-400 bg-transparent shadow-md shadow-red-400 hover:shadow-red-600 transition-all duration-300 flex items-center justify-center z-50 ${
+      className={`fixed bottom-26 right-6 w-16 h-16 rounded-full border border-red-400 bg-transparent shadow-md shadow-red-400 hover:shadow-red-600 transition-all duration-300 flex items-center justify-center z-50 bg-white ${
         isJumping ? 'animate-bounce' : ''
       }`}
       title="Asistente IA"
