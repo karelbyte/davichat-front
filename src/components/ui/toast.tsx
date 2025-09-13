@@ -8,6 +8,7 @@ export interface ToastProps {
   action?: ToastActionElement;
   duration?: number;
   onClose?: () => void;
+  open?: boolean;
 }
 
 
