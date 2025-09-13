@@ -9,6 +9,7 @@ export interface ToastProps {
   duration?: number;
   onClose?: () => void;
   open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 
