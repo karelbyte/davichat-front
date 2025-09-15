@@ -29,7 +29,6 @@ interface ChatInterfaceProps {
 const ChatIA: React.FC<ChatInterfaceProps> = ({ className }) => {
   // Socket.IO para recibir respuestas en tiempo real
   const SEND_WEBHOOK_URL = process.env.NEXT_PUBLIC_SEND_WEBHOOK_URL as string;
-  const RECEIVE_WEBHOOK_URL = process.env.NEXT_PUBLIC_RECEIVE_WEBHOOK_URL as string;
   const generateChatId = () => uuidv4();
   const generateMessageId = () => uuidv4();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -38,7 +37,7 @@ const ChatIA: React.FC<ChatInterfaceProps> = ({ className }) => {
     SEND_WEBHOOK_URL
   );
   const [receiveWebhookUrl, setReceiveWebhookUrl] = useState(
-    RECEIVE_WEBHOOK_URL
+    SEND_WEBHOOK_URL
   );
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY_IA_CHAT as string;
 const IA_SOCKET = process.env.NEXT_PUBLIC_IA_SOCKET as string;
@@ -194,7 +193,7 @@ type WindowWithTimeout = Window & { loadingTimeout?: ReturnType<typeof setTimeou
             <div>
               <label className="text-xs text-gray-700 mb-1 block">Webhook de Recepción</label>
               <Input
-                placeholder={RECEIVE_WEBHOOK_URL}
+                placeholder={SEND_WEBHOOK_URL}
                 value={receiveWebhookUrl}
                 onChange={(e) => setReceiveWebhookUrl(e.target.value)}
                 className="bg-chat-input border-border"
