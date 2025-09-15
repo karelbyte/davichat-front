@@ -516,7 +516,11 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
         />
 
         <div className="flex-1 flex flex-col">
-          {currentConversation  ? (
+          {showIAChat ? (
+            <div className="flex-1 flex items-center justify-center h-full w-full">
+              <ChatIA />
+            </div>
+          ) : currentConversation ? (
             <>
               <div className="bg-white border-b border-gray-200 p-3">
                 <div className="flex items-center justify-between">
@@ -629,25 +633,18 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center gap-6">
-              {!showIAChat && (
-                <div id="wellcome" className="flex flex-col items-center">
-                  <img src="/home.png" alt="logo" className="w-14 h-14 mb-2" />
-                  <div className="text-center">
-                    <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                      Bienvenido al Chat
-                    </h3>
-                    <p className="text-gray-600">
-                      Selecciona un usuario para iniciar una conversación o crea un
-                      grupo
-                    </p>
-                  </div>
+              <div id="wellcome" className="flex flex-col items-center">
+                <img src="/home.png" alt="logo" className="w-14 h-14 mb-2" />
+                <div className="text-center">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                    Bienvenido al Chat
+                  </h3>
+                  <p className="text-gray-600">
+                    Selecciona un usuario para iniciar una conversación o crea un
+                    grupo
+                  </p>
                 </div>
-              )}
-              {showIAChat && (
-                <div id="iaChat" className="flex items-center justify-center h-full w-full">
-                  <ChatIA />
-                </div>
-              )}
+              </div>
             </div>
           )}
         </div>
