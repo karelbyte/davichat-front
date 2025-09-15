@@ -54,7 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="bg-white border-b border-gray-200 px-4 py-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center">
-          <img src="/logo.png" alt="logo" className="w-12 h-8" />
+          <img src="/link.png" alt="logo" className="w-22" />
           <h1 className="text-lg text-gray-600">
             Davivienda Chat Interno
           </h1>

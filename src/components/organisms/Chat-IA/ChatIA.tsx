@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { io, /*Socket*/ } from 'socket.io-client';
 import { Button } from '@/components/atoms/Button/Button';
 import { Input } from '@/components/atoms/Input/Input';
-import { FiSend, FiSettings } from 'react-icons/fi';
+import { FiSend, /*FiSettings*/ } from 'react-icons/fi';
 import { v4 as uuidv4 } from 'uuid';
 import { cn } from '@/lib/utils';
 
@@ -44,7 +44,7 @@ const API_KEY = process.env.NEXT_PUBLIC_API_KEY_IA_CHAT as string;
 const IA_SOCKET = process.env.NEXT_PUBLIC_IA_SOCKET as string;
 
   const [isLoading, setIsLoading] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const [showSettings, /*setShowSettings*/] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [currentChatId, setCurrentChatId] = useState<string>(() => generateChatId());
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -136,12 +136,12 @@ type WindowWithTimeout = Window & { loadingTimeout?: ReturnType<typeof setTimeou
   };
 
   return (
-  <div className={cn('bg-white rounded-lg shadow-lg border border-gray-200 w-full h-full flex flex-col', className)}>
+  <div className={cn('bg-white shadow-lg border-gray-200 w-full h-full flex flex-col', className)}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-gradient-primary">
-            <img src="/logo.png" alt="Logo" className="w-15 h-15 object-contain" />
+            <img src="/conect.png" alt="Logo" className="w-40 object-contain" />
           </div>
           <div>
             <h1 className="text-xl font-semibold text-gray-800">Davichat IA</h1>
@@ -151,10 +151,10 @@ type WindowWithTimeout = Window & { loadingTimeout?: ReturnType<typeof setTimeou
               <span className="text-xs text-gray-700">
                 {isConnected ? 'Conectado' : 'Desconectado'}
               </span>
-              <span className="text-xs text-gray-700">•</span>
-              <span className="text-xs text-gray-700">
+               {/* <span className="text-xs text-gray-700">•</span>
+             <span className="text-xs text-gray-700">
                 Chat ID: {currentChatId.substring(0, 8)}...
-              </span>
+              </span>*/}
             </div>
           </div>
         </div>
@@ -166,14 +166,14 @@ type WindowWithTimeout = Window & { loadingTimeout?: ReturnType<typeof setTimeou
           >
             Nuevo Chat
           </Button>
-          <Button
+          {/*   <Button
             size="sm"
             onClick={() => setShowSettings(!showSettings)}
             className="gap-2 !bg-[#e20517] text-white"
           >
             <FiSettings className="w-4 h-4" />
             Configuración
-          </Button>
+          </Button>*/}
         </div>
       </div>
 
@@ -207,60 +207,67 @@ type WindowWithTimeout = Window & { loadingTimeout?: ReturnType<typeof setTimeou
           </div>
         </div>
       )}
+      
       {/* Messages Area */}
-  <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ maxHeight: '60vh', minHeight: '300px', scrollbarWidth: 'thin', overscrollBehavior: 'contain' }}>
-        {messages.length === 0 && (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mb-4 mx-auto animate-pulse-glow">
-                <img src="/ia.png" alt="Logo" className="w-15 h-15 object-contain" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-800 mb-2">Bienvenido al Chat IA</h3>
-              <p className="text-gray-700">Comienza a chatear</p>
-            </div>
-          </div>
-        )}
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={cn(
-              'flex animate-slide-up',
-              message.isUser ? 'justify-end' : 'justify-start'
-            )}
-          >
-            <div
-              className={cn(
-                'max-w-[70%] p-3 rounded-2xl shadow-soft',
-                message.isUser
-                  ? 'bg-chat-bubble-user text-primary-foreground'
-                  : 'bg-chat-bubble-bot text-gray-800 border border-border'
-              )}
-            >
-              <p className="text-sm text-gray-800">{message.content}</p>
-              <p className="text-xs mt-1 text-gray-700">
-                {message.timestamp.toLocaleTimeString()}
-              </p>
-            </div>
-          </div>
-        ))}
-        {isLoading && (
-          <div className="flex justify-start animate-slide-up">
-            <div className="bg-chat-bubble-bot border border-border p-3 rounded-2xl shadow-soft">
-              <div className="flex items-center space-x-2">
-                <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+      <div className="overflow-y-auto" style={{ height: 'calc(100vh - 280px)', scrollbarWidth: 'thin', overscrollBehavior: 'contain' }}>
+        <div className="p-4">
+          {messages.length === 0 ? (
+            <div className="flex items-center justify-center h-full min-h-[400px]">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mb-4 mx-auto animate-pulse-glow">
+                  <img src="/ia.png" alt="Logo" className="w-15 h-15 object-contain" />
                 </div>
-                <span className="text-xs text-gray-700">Esperando respuesta...</span>
+                <h3 className="text-lg font-medium text-gray-800 mb-2">Bienvenido al Chat IA</h3>
+                <p className="text-gray-700">Comienza a chatear</p>
               </div>
             </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
+          ) : (
+            <div className="space-y-4 py-12">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={cn(
+                    'flex animate-slide-up',
+                    message.isUser ? 'justify-end' : 'justify-start'
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'max-w-[70%] p-3 rounded-2xl shadow-soft',
+                      message.isUser
+                        ? 'bg-chat-bubble-user text-primary-foreground'
+                        : 'bg-chat-bubble-bot text-gray-800 border border-border'
+                    )}
+                  >
+                    <p className="text-sm text-gray-800">{message.content}</p>
+                    <p className="text-xs mt-1 text-gray-700">
+                      {message.timestamp.toLocaleTimeString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {isLoading && (
+                <div className="flex justify-start animate-slide-up">
+                  <div className="bg-chat-bubble-bot border border-border p-3 rounded-2xl shadow-soft">
+                    <div className="flex items-center space-x-2">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      </div>
+                      <span className="text-xs text-gray-700">Esperando respuesta...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </div>
       </div>
+      
       {/* Input Area */}
-      <div className="p-4 border-t border-border">
+      <div className="bg-white border-t border-gray-200 p-4">
         <div className="flex gap-2">
           <Input
             placeholder={isLoading ? "Esperando respuesta..." : "Escribe tu mensaje..."}
