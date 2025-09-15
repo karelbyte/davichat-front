@@ -124,10 +124,12 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
   };
 
   const handleUserClick = (userId: string) => {
+    setShowIAChat(false);
     startPrivateChat(userId);
   };
 
   const handleGroupClick = (conversation: Conversation) => {
+    setShowIAChat(false);
     joinConversation(conversation);
   };
 
