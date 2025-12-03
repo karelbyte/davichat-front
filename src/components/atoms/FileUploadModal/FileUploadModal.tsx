@@ -76,6 +76,10 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
       'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/zip',
+      'application/x-zip-compressed',
       'text/plain',
       'audio/',
       'video/'
@@ -135,7 +139,7 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
           </div>
 
           <p className="text-xs text-gray-500 mt-2">
-            PNG, JPG, PDF, DOC, DOCX, TXT, MP3, MP4 hasta 10MB
+            PNG, JPG, PDF, DOC, DOCX, XLS, XLSX, ZIP, TXT, MP3, MP4 hasta 10MB
           </p>
         </div>
 
@@ -160,7 +164,7 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
           type="file"
           className="hidden"
           multiple
-          accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,audio/*,video/*"
+          accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,application/x-zip-compressed,text/plain,audio/*,video/*"
           onChange={handleFileSelect}
         />
       </div>

@@ -151,20 +151,26 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
   return (
     <div className={`bg-whit border-gray-200 p-4 ${className}`}>
+      {isRecording && (
+        <div className="mb-2 flex items-center gap-2 text-red-600 animate-pulse">
+          <PiMicrophone className="w-4 h-4" />
+          <span className="text-sm font-medium">Grabando audio...</span>
+        </div>
+      )}
       <div className="flex space-x-2">
         <Input
           type="text"
-          placeholder={placeholder}
+          placeholder={isRecording ? "Grabando audio..." : placeholder}
           value={message}
           onChange={handleInputChange}
           onKeyPress={handleKeyPress}
-          disabled={disabled || isUploading}
+          disabled={disabled || isUploading || isRecording}
           className="flex-1"
         />
         
         <IconButton
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          disabled={disabled || isUploading}
+          disabled={disabled || isUploading || isRecording}
           className="text-gray-600 hover:text-gray-800"
         >
           😊
@@ -172,7 +178,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         
         <IconButton
           onClick={() => setShowFileUploadModal(true)}
-          disabled={disabled || isUploading}
+          disabled={disabled || isUploading || isRecording}
           className="text-gray-600 hover:text-gray-800"
         >
           <AiOutlinePaperClip/>
@@ -188,7 +194,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         
         <IconButton
           onClick={handleSendMessage}
-          disabled={disabled || !message.trim() || isUploading}
+          disabled={disabled || !message.trim() || isUploading || isRecording}
           className={!message.trim() ? "text-gray-400" : "text-blue-600 hover:text-blue-800"}
         >
           ➤
