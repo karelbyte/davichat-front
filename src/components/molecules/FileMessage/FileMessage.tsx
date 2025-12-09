@@ -1,4 +1,5 @@
 import React from 'react';
+import { Message } from '../../../services/types';
 
 interface FileData {
   fileUrl: string;
@@ -18,6 +19,9 @@ interface FileMessageProps {
   timestamp?: string;
   isReply?: boolean;
   replyPreview?: string;
+  replyTo?: string;
+  allMessages?: Message[];
+  users?: Array<{ id: string; name: string }>;
 }
 
 export const FileMessage: React.FC<FileMessageProps> = ({
@@ -29,7 +33,10 @@ export const FileMessage: React.FC<FileMessageProps> = ({
   messageId,
   timestamp,
   isReply = false,
-  replyPreview
+  replyPreview,
+  replyTo,
+  allMessages = [],
+  users = []
 }) => {
   // Función para verificar si el mensaje se puede eliminar (dentro de 5 minutos)
   const isMessageEditable = (timestamp: string) => {
@@ -38,6 +45,33 @@ export const FileMessage: React.FC<FileMessageProps> = ({
     const timeDifference = currentTime - messageTime;
     const fiveMinutes = 5 * 60 * 1000; // 5 minutos en milisegundos
     return timeDifference <= fiveMinutes;
+  };
+
+  // Buscar el mensaje original al que se está respondiendo
+  const originalMessage = replyTo && allMessages.length > 0
+    ? allMessages.find(m => m.id === replyTo)
+    : null;
+
+  // Función para obtener el preview del mensaje original
+  const getReplyPreview = () => {
+    if (originalMessage) {
+      // Si encontramos el mensaje original, mostrar información completa
+      const originalSender = users.find(u => u.id === originalMessage.senderId);
+      const senderName = originalSender?.name || 'Usuario';
+      
+      if (originalMessage.messageType === 'file' || originalMessage.messageType === 'audio') {
+        try {
+          const fileData = JSON.parse(originalMessage.content);
+          const fileType = originalMessage.messageType === 'audio' ? 'audio' : 'archivo';
+          return `${senderName}: Envió un ${fileType}`;
+        } catch {
+          return `${senderName}: ${originalMessage.content.substring(0, 50)}${originalMessage.content.length > 50 ? '...' : ''}`;
+        }
+      }
+      return `${senderName}: ${originalMessage.content.substring(0, 50)}${originalMessage.content.length > 50 ? '...' : ''}`;
+    }
+    // Fallback al preview del backend si no encontramos el mensaje original
+    return replyPreview || 'Mensaje eliminado';
   };
 
   // FileMessage rendering with data
@@ -57,9 +91,9 @@ export const FileMessage: React.FC<FileMessageProps> = ({
     return (
       <div className={`mb-2 ${className}`}>
         <div className="relative">
-          {isReply && replyPreview && (
-            <div className="text-xs text-gray-500 mb-2 p-2 bg-gray-100 rounded cursor-pointer hover:bg-gray-200 transition-colors">
-              ↩️ {replyPreview}
+          {isReply && (
+            <div className="text-xs text-gray-500 mb-2 p-2 bg-gray-100 rounded border-l-2 border-gray-400 cursor-pointer hover:bg-gray-200 transition-colors">
+              ↩️ {getReplyPreview()}
             </div>
           )}
           <img 
@@ -79,9 +113,9 @@ export const FileMessage: React.FC<FileMessageProps> = ({
     return (
       <div className={`mb-2 ${className}`}>
         <div className="flex flex-col">
-          {isReply && replyPreview && (
-            <div className="text-xs text-gray-500 mb-2 p-2 bg-gray-100 rounded cursor-pointer hover:bg-gray-200 transition-colors">
-              ↩️ {replyPreview}
+          {isReply && (
+            <div className="text-xs text-gray-500 mb-2 p-2 bg-gray-100 rounded border-l-2 border-gray-400 cursor-pointer hover:bg-gray-200 transition-colors">
+              ↩️ {getReplyPreview()}
             </div>
           )}
           <div className="flex p-3 md:w-60 lg:w-80">
@@ -98,9 +132,9 @@ export const FileMessage: React.FC<FileMessageProps> = ({
   return (
     <div className={`mb-2 ${className}`}>
       <div className="flex flex-col">
-        {isReply && replyPreview && (
-          <div className="text-xs text-gray-500 mb-2 p-2 bg-gray-100 rounded cursor-pointer hover:bg-gray-200 transition-colors">
-            ↩️ {replyPreview}
+        {isReply && (
+          <div className="text-xs text-gray-500 mb-2 p-2 bg-gray-100 rounded border-l-2 border-gray-400 cursor-pointer hover:bg-gray-200 transition-colors">
+            ↩️ {getReplyPreview()}
           </div>
         )}
         <div className="flex items-center space-x-2 p-2 rounded">

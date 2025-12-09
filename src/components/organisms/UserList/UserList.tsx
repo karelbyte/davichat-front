@@ -21,6 +21,7 @@ interface UserListProps {
   error?: string | null;
   onRetry?: () => void;
   className?: string;
+  lastMessageTimestamps?: Record<string, string>;
 }
 
 export const UserList: React.FC<UserListProps> = ({
@@ -37,7 +38,8 @@ export const UserList: React.FC<UserListProps> = ({
   isLoading = false,
   error,
   onRetry,
-  className = ''
+  className = '',
+  lastMessageTimestamps = {}
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -45,34 +47,74 @@ export const UserList: React.FC<UserListProps> = ({
   
   const filteredUsers = users.filter(user => user.id !== currentUserId);
   const groups = conversations.filter(conv => conv.type === 'group');
+  
+  // Función para obtener el timestamp del último mensaje
+  const getLastMessageTimestamp = (id: string): number => {
+    const timestamp = lastMessageTimestamps[id];
+    if (timestamp) {
+      return new Date(timestamp).getTime();
+    }
+    return 0;
+  };
+  
+  // Tipo unificado para items combinados
+  type ListItem = 
+    | { type: 'user'; data: User }
+    | { type: 'group'; data: Conversation };
 
+  // Combinar y ordenar usuarios y grupos juntos por último mensaje
+  const sortedCombinedList = useMemo(() => {
+    const items: ListItem[] = [
+      ...filteredUsers.map(user => ({ type: 'user' as const, data: user })),
+      ...groups.map(group => ({ type: 'group' as const, data: group }))
+    ];
+
+    return items.sort((a, b) => {
+      const timestampA = getLastMessageTimestamp(a.data.id);
+      const timestampB = getLastMessageTimestamp(b.data.id);
+      
+      // Si ambos tienen timestamp, ordenar por timestamp (más reciente primero)
+      if (timestampA > 0 && timestampB > 0) {
+        return timestampB - timestampA;
+      }
+      
+      // Si solo uno tiene timestamp, ese va primero
+      if (timestampA > 0) return -1;
+      if (timestampB > 0) return 1;
+      
+      // Si ninguno tiene timestamp, ordenar por nombre/fecha
+      if (a.type === 'user' && b.type === 'user') {
+        return a.data.name.localeCompare(b.data.name);
+      }
+      if (a.type === 'group' && b.type === 'group') {
+        const dateA = new Date(a.data.updatedAt || a.data.createdAt).getTime();
+        const dateB = new Date(b.data.updatedAt || b.data.createdAt).getTime();
+        return dateB - dateA;
+      }
+      
+      // Si son tipos diferentes sin timestamp, usuarios primero
+      return a.type === 'user' ? -1 : 1;
+    });
+  }, [filteredUsers, groups, lastMessageTimestamps]);
+
+  // Filtrar la lista combinada si hay búsqueda
   const filteredResults = useMemo(() => {
     if (!searchTerm.trim()) {
-      return {
-        users: filteredUsers,
-        groups: groups
-      };
+      return sortedCombinedList;
     }
 
     const term = searchTerm.toLowerCase();
     
-    const filteredUsersResult = users.filter(user => 
-      user.id !== currentUserId && 
-      (user.name.toLowerCase().includes(term) || 
-       user.email.toLowerCase().includes(term))
-    );
-
-    const filteredGroupsResult = groups.filter(group =>
-      group.name?.toLowerCase().includes(term) ||
-      group.description?.toLowerCase().includes(term)
-    );
-
-    return {
-      users: filteredUsersResult,
-      groups: filteredGroupsResult
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, users, groups, currentUserId]);
+    return sortedCombinedList.filter(item => {
+      if (item.type === 'user') {
+        return item.data.name.toLowerCase().includes(term) || 
+               item.data.email.toLowerCase().includes(term);
+      } else {
+        return item.data.name?.toLowerCase().includes(term) ||
+               item.data.description?.toLowerCase().includes(term);
+      }
+    });
+  }, [searchTerm, sortedCombinedList]);
 
   const isUserSelected = (userId: string) => {
     return currentConversation?.type === 'private' && 
@@ -153,40 +195,44 @@ export const UserList: React.FC<UserListProps> = ({
                 </button>
               )}
             </div>
-          ) : filteredResults.users.length === 0 && filteredResults.groups.length === 0 ? (
+          ) : filteredResults.length === 0 ? (
             <div className="text-sm text-gray-500 p-4 text-center">
               {searchTerm.trim() ? 'No se encontraron resultados' : 'No hay usuarios conectados ni grupos disponibles.'}
             </div>
           ) : (
             <>
-              {filteredResults.users.map(user => (
-                <div
-                  key={user.id}
-                  ref={isUserSelected(user.id) ? selectedElementRef : null}
-                >
-                  <UserCard
-                    user={user}
-                    unreadCount={unreadCounts[user.id] || 0}
-                    isSelected={isUserSelected(user.id)}
-                    onClick={() => handleUserClick(user.id)}
-                  />
-                </div>
-              ))}
-              
-              {filteredResults.groups.map(group => (
-                <div
-                  key={group.id}
-                  ref={isGroupSelected(group.id) ? selectedElementRef : null}
-                >
-                  <GroupCard
-                    group={group}
-                    unreadCount={groupUnreadCounts[group.id] || 0}
-                    isSelected={isGroupSelected(group.id)}
-                    onClick={() => handleGroupClick(group)}
-                    onDoubleClick={() => onGroupDoubleClick?.(group)}
-                  />
-                </div>
-              ))}
+              {filteredResults.map(item => {
+                if (item.type === 'user') {
+                  return (
+                    <div
+                      key={item.data.id}
+                      ref={isUserSelected(item.data.id) ? selectedElementRef : null}
+                    >
+                      <UserCard
+                        user={item.data}
+                        unreadCount={unreadCounts[item.data.id] || 0}
+                        isSelected={isUserSelected(item.data.id)}
+                        onClick={() => handleUserClick(item.data.id)}
+                      />
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div
+                      key={item.data.id}
+                      ref={isGroupSelected(item.data.id) ? selectedElementRef : null}
+                    >
+                      <GroupCard
+                        group={item.data}
+                        unreadCount={groupUnreadCounts[item.data.id] || 0}
+                        isSelected={isGroupSelected(item.data.id)}
+                        onClick={() => handleGroupClick(item.data)}
+                        onDoubleClick={() => onGroupDoubleClick?.(item.data)}
+                      />
+                    </div>
+                  );
+                }
+              })}
             </>
           )}
         </div>

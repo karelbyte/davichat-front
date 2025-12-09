@@ -12,6 +12,8 @@ interface MessageBubbleProps {
   onEditMessage?: (messageId: string, currentContent: string) => void;
   onDeleteMessage?: (messageId: string) => void;
   onReplyMessage?: (messageId: string) => void;
+  allMessages?: Message[];
+  users?: Array<{ id: string; name: string }>;
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
@@ -22,7 +24,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   className = '',
   onEditMessage,
   onDeleteMessage,
-  onReplyMessage
+  onReplyMessage,
+  allMessages = [],
+  users = []
 }) => {
   // Función para verificar si el mensaje se puede editar/eliminar (dentro de 5 minutos)
   const isMessageEditable = (timestamp: string) => {
@@ -32,6 +36,34 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     const fiveMinutes = 5 * 60 * 1000; // 5 minutos en milisegundos
     return timeDifference <= fiveMinutes;
   };
+
+  // Buscar el mensaje original al que se está respondiendo
+  const originalMessage = message.replyTo && allMessages.length > 0
+    ? allMessages.find(m => m.id === message.replyTo)
+    : null;
+
+  // Función para obtener el preview del mensaje original
+  const getReplyPreview = () => {
+    if (originalMessage) {
+      // Si encontramos el mensaje original, mostrar información completa
+      const originalSender = users.find(u => u.id === originalMessage.senderId);
+      const senderName = originalSender?.name || 'Usuario';
+      
+      if (originalMessage.messageType === 'file' || originalMessage.messageType === 'audio') {
+        try {
+          const fileData = JSON.parse(originalMessage.content);
+          const fileType = originalMessage.messageType === 'audio' ? 'audio' : 'archivo';
+          return `${senderName}: Envió un ${fileType}`;
+        } catch {
+          return `${senderName}: ${originalMessage.content.substring(0, 50)}${originalMessage.content.length > 50 ? '...' : ''}`;
+        }
+      }
+      return `${senderName}: ${originalMessage.content.substring(0, 50)}${originalMessage.content.length > 50 ? '...' : ''}`;
+    }
+    // Fallback al preview del backend si no encontramos el mensaje original
+    return message.replyPreview || 'Mensaje eliminado';
+  };
+
   return (
     <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-4 px-2 ${className}`}>
       <div className="flex flex-col">
@@ -76,9 +108,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             )}
           </div>
         </div>
-        {message.isReply && message.replyPreview && (
-          <div className="max-w-xs text-xs text-gray-500 p-2 rounded-t-lg bg-gray-100 border-gray-300 transition-colors">
-            {message.replyPreview}
+        {message.isReply && (
+          <div className="max-w-xs text-xs text-gray-500 p-2 rounded-t-lg bg-gray-100 border-l-2 border-gray-400 transition-colors">
+            {getReplyPreview()}
           </div>
         )}
         <div className={`max-w-xs lg:max-w-md px-4 py-2 ${message.isReply ? 'rounded-b-lg' : 'rounded-lg'}  ${

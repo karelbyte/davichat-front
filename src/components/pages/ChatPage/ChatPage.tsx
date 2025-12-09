@@ -77,6 +77,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
     retryLoad,
     requestNotificationPermission,
     browserNotificationsEnabled,
+    lastMessageTimestamps,
   } = useChat(currentUser || null, socketService);
 
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
@@ -337,10 +338,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
                     <TbMessage2Minus />
                   </button>
                   <a
-                    href={fileData.fileUrl}
-                    target="_blank"
+                    href={process.env.NEXT_PUBLIC_API_URL + fileData.fileUrl.replace('/api', '')}
                     className="text-gray-400 hover:text-blue-500 transition-colors p-1"
-                    title="Descargar archivo"
+                    title={`Descargar archivo ${fileData.fileName}`}
+                    target="_blank"
                   >
                     <CiSaveDown2 />
                   </a>
@@ -370,6 +371,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
                   timestamp={message.timestamp}
                   isReply={message.isReply}
                   replyPreview={message.replyPreview}
+                  replyTo={message.replyTo}
+                  allMessages={messages}
+                  users={users}
                 />
               </div>
             </div>
@@ -388,6 +392,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
             onEditMessage={handleEditMessage}
             onDeleteMessage={handleDeleteMessage}
             onReplyMessage={handleReplyMessage}
+            allMessages={messages}
+            users={users}
           />
         );
       }
@@ -449,6 +455,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
                   timestamp={message.timestamp}
                   isReply={message.isReply}
                   replyPreview={message.replyPreview}
+                  replyTo={message.replyTo}
+                  allMessages={messages}
+                  users={users}
                 />
               </div>
             </div>
@@ -467,6 +476,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
             onEditMessage={handleEditMessage}
             onDeleteMessage={handleDeleteMessage}
             onReplyMessage={handleReplyMessage}
+            allMessages={messages}
+            users={users}
           />
         );
       }
@@ -482,6 +493,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
         onEditMessage={handleEditMessage}
         onDeleteMessage={handleDeleteMessage}
         onReplyMessage={handleReplyMessage}
+        allMessages={messages}
+        users={users}
       />
     );
   };
@@ -515,6 +528,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
           isLoading={isLoading}
           error={error}
           onRetry={retryLoad}
+          lastMessageTimestamps={lastMessageTimestamps}
         />
 
         <div className="flex-1 flex flex-col">

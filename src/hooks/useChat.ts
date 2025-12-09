@@ -14,6 +14,8 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Estado para rastrear el último mensaje por usuario/grupo para ordenar la lista
+  const [lastMessageTimestamps, setLastMessageTimestamps] = useState<Record<string, string>>({});
 
   // Estado para notificaciones del navegador
   const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState(false);
@@ -34,24 +36,24 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       const eventKey = generateEventKey(eventType, data);
       const recentEvents = JSON.parse(sessionStorage.getItem('recentEvents') || '{}');
       const now = Date.now();
-      
+
       // Limpiar eventos antiguos (más de 5 segundos)
       Object.keys(recentEvents).forEach(key => {
         if (now - recentEvents[key] > 5000) {
           delete recentEvents[key];
         }
       });
-      
+
       // Verificar si ya existe
       if (recentEvents[eventKey]) {
         console.log(`🚫 EVENTO DUPLICADO FILTRADO: ${eventType}`, data);
         return true; // Es duplicado
       }
-      
+
       // Guardar nuevo evento
       recentEvents[eventKey] = now;
       sessionStorage.setItem('recentEvents', JSON.stringify(recentEvents));
-      
+
       console.log(`✅ EVENTO NUEVO PROCESADO: ${eventType}`, data);
       return false; // No es duplicado
     } catch (error) {
@@ -76,7 +78,7 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
 
     setIsLoading(true);
     setError(null); // Limpiar errores previos
-    
+
     // Crear un timeout para evitar que se quede colgada indefinidamente
     const timeoutId = setTimeout(() => {
       setError('La carga está tardando más de lo esperado. Por favor, verifica tu conexión.');
@@ -88,34 +90,75 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
         apiService.getUsers(),
         apiService.getUserConversations(currentUser.id)
       ]);
-      
+
       clearTimeout(timeoutId); // Limpiar timeout si la carga fue exitosa
-      
+
       // Construir URLs completas para los avatares de todos los usuarios
       const usersWithAvatars = usersData.map(user => ({
         ...user,
         avatar: user.avatar ? `${process.env.NEXT_PUBLIC_API_URL}${user.avatar.replace('/api', '')}` : undefined
       }));
-      
+
       setUsers(usersWithAvatars);
       setConversations(conversationsData);
-                    } catch (error) {
-                  clearTimeout(timeoutId); // Limpiar timeout en caso de error
-                  console.error('Error loading data:', error);
-                  setError('Error al cargar usuarios y conversaciones. Por favor, intenta de nuevo.');
-                } finally {
+
+      // Inicializar contadores de no leídos desde los datos del backend
+      // Esto es importante para mostrar badges correctamente cuando el usuario entra a la app
+      if (currentUser) {
+        setUnreadCounts(prev => {
+          const newCounts = { ...prev };
+          conversationsData.forEach(conversation => {
+            // Solo procesar conversaciones privadas con unreadCount del backend
+            if (conversation.type === 'private' && 
+                conversation.unreadCount !== undefined && 
+                conversation.unreadCount > 0) {
+              // Para conversaciones privadas, encontrar el otro participante
+              const otherParticipant = conversation.participants.find(p => p !== currentUser.id);
+              if (otherParticipant) {
+                // Solo actualizar si no existe un valor previo o si el valor del backend es mayor
+                // Esto evita sobrescribir contadores más recientes de eventos de socket
+                if (!prev[otherParticipant] || conversation.unreadCount > prev[otherParticipant]) {
+                  newCounts[otherParticipant] = conversation.unreadCount;
+                }
+              }
+            }
+          });
+          return newCounts;
+        });
+
+        setGroupUnreadCounts(prev => {
+          const newCounts = { ...prev };
+          conversationsData.forEach(conversation => {
+            // Solo procesar grupos con unreadCount del backend
+            if (conversation.type === 'group' && 
+                conversation.unreadCount !== undefined && 
+                conversation.unreadCount > 0) {
+              // Solo actualizar si no existe un valor previo o si el valor del backend es mayor
+              if (!prev[conversation.id] || conversation.unreadCount > prev[conversation.id]) {
+                newCounts[conversation.id] = conversation.unreadCount;
+              }
+            }
+          });
+          return newCounts;
+        });
+      }
+    } catch (error) {
+      clearTimeout(timeoutId); // Limpiar timeout en caso de error
+      console.error('Error loading data:', error);
+      setError('Error al cargar usuarios y conversaciones. Por favor, intenta de nuevo.');
+    } finally {
       setIsLoading(false);
     }
   }, [currentUser]);
 
-                const loadMessages = useCallback(async (conversationId: string) => {
-                try {
-                  const messagesData = await apiService.getMessages(conversationId);
-                  setMessages(messagesData);
-                } catch (error) {
-                  console.error('Error loading messages:', error);
-                }
-              }, []);
+  const loadMessages = useCallback(async (conversationId: string) => {
+    try {
+      const messagesData = await apiService.getMessages(conversationId);
+      setMessages(messagesData);
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
+  }, []);
 
   const startPrivateChat = useCallback(async (otherUserId: string) => {
     if (!currentUser) return;
@@ -132,9 +175,9 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       setCurrentConversation(conversation);
       setTypingUsers(new Set());
       loadMessages(conversation.id);
-                    } catch (error) {
-                  console.error('Error creating private chat:', error);
-                }
+    } catch (error) {
+      console.error('Error creating private chat:', error);
+    }
   }, [currentUser, loadMessages]);
 
   const joinConversation = useCallback((conversation: Conversation) => {
@@ -163,11 +206,11 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
 
   const sendMessage = useCallback((content: string, messageType: 'text' | 'file' | 'audio' = 'text') => {
     if (!currentUser || !socketService) return;
-    
+
     if (!currentConversation?.id) {
       return;
     }
-    
+
     socketService.sendMessage(currentConversation.id, currentUser.id, content, messageType);
   }, [currentConversation, currentUser, socketService]);
 
@@ -216,6 +259,22 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
   // Función para solicitar permisos de notificación
   const requestNotificationPermission = useCallback(async () => {
     if ('Notification' in window) {
+      // Verificar primero el estado actual del permiso
+      const currentPermission = Notification.permission;
+      
+      // Si ya está concedido, no llamar a requestPermission() para evitar ventanas en Firefox
+      if (currentPermission === 'granted') {
+        setBrowserNotificationsEnabled(true);
+        return true;
+      }
+      
+      // Si está denegado, no hacer nada
+      if (currentPermission === 'denied') {
+        setBrowserNotificationsEnabled(false);
+        return false;
+      }
+      
+      // Solo llamar a requestPermission() si el permiso es 'default'
       const permission = await Notification.requestPermission();
       setBrowserNotificationsEnabled(permission === 'granted');
       return permission === 'granted';
@@ -225,10 +284,58 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
 
   // Función para mostrar notificación del navegador
   const showBrowserNotification = useCallback((title: string, options: NotificationOptions) => {
-    if (browserNotificationsEnabled && !isPageVisible) {
-      new Notification(title, options);
+    // Verificar que las notificaciones estén disponibles
+    if (!('Notification' in window)) {
+      return;
     }
-  }, [browserNotificationsEnabled, isPageVisible]);
+
+    // Verificar el permiso
+    if (Notification.permission !== 'granted') {
+      return;
+    }
+
+    // Verificar si la página está visible o en segundo plano
+    const pageIsHidden = document.hidden || !document.hasFocus();
+    
+    // Mostrar notificación si la página está oculta/minimizada O si está en segundo plano
+    if (pageIsHidden || !isPageVisible) {
+      try {
+        // Detectar si es Chrome en Windows (problema conocido)
+        const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+        const isWindows = navigator.platform.includes('Win');
+        const isChromeWindows = isChrome && isWindows;
+        
+        // Crear la notificación con todas las opciones necesarias
+        // En Chrome/Windows, usar requireInteraction puede ayudar
+        const notificationOptions: NotificationOptions = {
+          body: options.body || '',
+          icon: options.icon || '/logo.png',
+          badge: options.badge || '/logo.png',
+          tag: options.tag || 'davichat-message',
+          // En Chrome/Windows, requireInteraction puede ayudar a que se muestre
+          requireInteraction: isChromeWindows ? true : (options.requireInteraction ?? false),
+          silent: false,
+          ...options
+        };
+        
+        const notification = new Notification(title, notificationOptions);
+        
+        // Event listeners
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+        
+        // En Chrome/Windows, mantener la notificación más tiempo
+        const closeTimeout = isChromeWindows ? 10000 : 5000;
+        setTimeout(() => {
+          notification.close();
+        }, closeTimeout);
+      } catch {
+        // Silenciar errores de notificación
+      }
+    }
+  }, [isPageVisible]);
 
   // Función para actualizar el título de la pestaña
   const updatePageTitle = useCallback((unreadCount: number) => {
@@ -250,14 +357,14 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
           const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
           const oscillator = audioContext.createOscillator();
           const gainNode = audioContext.createGain();
-          
+
           oscillator.connect(gainNode);
           gainNode.connect(audioContext.destination);
-          
+
           oscillator.frequency.value = 800;
           oscillator.type = 'sine';
           gainNode.gain.value = 0.1;
-          
+
           oscillator.start();
           setTimeout(() => {
             oscillator.stop();
@@ -276,7 +383,7 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     const handleVisibilityChange = () => {
       const isVisible = !document.hidden;
       setIsPageVisible(isVisible);
-      
+
       // Si la página se vuelve visible, limpiar el título
       if (isVisible) {
         document.title = 'DaviChat';
@@ -316,31 +423,14 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     if (!socketService || !currentUser) return;
 
     const setupEventListeners = () => {
-      
+
       socketService.on('message_received', (message) => {
-        // Agregar el mensaje al estado local si estamos en la conversación correcta
+        // message_received solo se usa cuando estamos en la conversación actual
+        // Para mensajes de conversaciones que NO estamos viendo, el backend envía unread_message_private/unread_message_group
         if (currentConversation && message.conversationId === currentConversation.id) {
+          // Agregar el mensaje a la lista de mensajes
           setMessages(prev => [...prev, message]);
-        }
-        
-        // También actualizar el contador de mensajes no leídos
-        if (message.conversationId !== currentConversation?.id) {
-          // Buscar la conversación para determinar si es privada o de grupo
-          const conversation = conversations.find(c => c.id === message.conversationId);
-          
-          if (conversation && conversation.type === 'private') {
-            // Es una conversación privada
-            setUnreadCounts(prev => ({
-              ...prev,
-              [message.senderId]: (prev[message.senderId] || 0) + 1
-            }));
-          } else {
-            // Es una conversación de grupo
-            setGroupUnreadCounts(prev => ({
-              ...prev,
-              [message.conversationId]: (prev[message.conversationId] || 0) + 1
-            }));
-          }
+
         }
 
         // Solo mostrar notificaciones si no es el usuario actual y la página no está visible
@@ -348,7 +438,7 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
           // Buscar el nombre del usuario en el array users
           const senderUser = users.find(user => user.id === message.senderId);
           const senderName = senderUser?.name || 'Usuario';
-          
+
           // Función para generar el cuerpo de la notificación basado en el tipo de mensaje
           const getNotificationBody = (message: Message) => {
             if (message.messageType === 'file') {
@@ -364,7 +454,7 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
               return message.content; // Para mensajes de texto
             }
           };
-          
+
           // Notificación del navegador
           showBrowserNotification(
             `Nuevo mensaje de ${senderName}`,
@@ -384,14 +474,14 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       });
 
       socketService.on('user_status_update', (data) => {
-        setUsers(prev => prev.map(user => 
-          user.id === data.userId 
+        setUsers(prev => prev.map(user =>
+          user.id === data.userId
             ? { ...user, isOnline: data.status === 'online' }
             : user
         ));
       });
 
-            socketService.on('user_connected', (data) => {
+      socketService.on('user_connected', (data) => {
         // ✅ MANEJAR LA ESTRUCTURA REAL QUE LLEGA DEL BACKEND:
         if (data.userId && data.name && data.email) {
           const userData = {
@@ -407,15 +497,15 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           };
-          
+
           setUsers(prev => {
             // Verificar si el usuario ya existe en la lista
             const existingUser = prev.find(user => user.id === data.userId);
-            
+
             if (existingUser) {
               // Si existe, solo actualizar el estado online
-              return prev.map(user => 
-                user.id === data.userId 
+              return prev.map(user =>
+                user.id === data.userId
                   ? { ...user, isOnline: true }
                   : user
               );
@@ -428,36 +518,62 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       });
 
       socketService.on('user_disconnected', (data) => {
-        
-        setUsers(prev => prev.map(user => 
-          user.id === data.userId 
+
+        setUsers(prev => prev.map(user =>
+          user.id === data.userId
             ? { ...user, isOnline: false }
             : user
         ));
       });
 
       socketService.on('user_leave', (data) => {
-        setUsers(prev => prev.map(user => 
-          user.id === data.userId 
+        setUsers(prev => prev.map(user =>
+          user.id === data.userId
             ? { ...user, isOnline: false }
             : user
         ));
       });
 
       socketService.on('unread_message_private', (data) => {
-        if (currentConversation && currentConversation.participants.includes(data.senderId)) return;
+        // Solo ignorar si la conversación activa es privada Y el senderId es el otro participante
+        // Si la conversación activa es un grupo, siempre mostrar el badge del mensaje privado
+        if (currentConversation && 
+            currentConversation.type === 'private' && 
+            currentConversation.participants.includes(data.senderId)) {
+          return;
+        }
+        
+        // Actualizar contador de no leídos
         setUnreadCounts(prev => ({
           ...prev,
           [data.senderId]: (prev[data.senderId] || 0) + 1
         }));
+        
+        // Actualizar timestamp del último mensaje para ordenar la lista
+        if (data.timestamp) {
+          setLastMessageTimestamps(prev => ({
+            ...prev,
+            [data.senderId]: data.timestamp
+          }));
+        }
       });
 
       socketService.on('unread_message_group', (data) => {
         if (currentConversation && currentConversation.id === data.conversationId) return;
+        
+        // Actualizar contador de no leídos
         setGroupUnreadCounts(prev => ({
           ...prev,
           [data.conversationId]: (prev[data.conversationId] || 0) + 1
         }));
+        
+        // Actualizar timestamp del último mensaje para ordenar la lista
+        if (data.timestamp) {
+          setLastMessageTimestamps(prev => ({
+            ...prev,
+            [data.conversationId]: data.timestamp
+          }));
+        }
       });
 
       socketService.on('typing_indicator', (data) => {
@@ -497,28 +613,28 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
             toast.success(`Se añadió a ${addedUserName} al grupo, se le envió notificación`);
           });
         }
-        
+
         if (data.userId === currentUser?.id) {
           showToastIfNotDuplicate('user_added_to_group', data, () => {
             toast.info(`Has sido añadido al grupo "${data.conversationName}"`);
           });
-          
+
           // Si el usuario fue añadido, necesitamos recargar sus conversaciones
           // para que vea el grupo en su lista
           loadUsersAndConversations();
         }
-        
+
         // ✅ ACTUALIZAR ESTADO LOCAL INMEDIATAMENTE para todos los usuarios
-        setConversations(prev => prev.map(conv => 
-          conv.id === data.conversationId 
-            ? { 
-                ...conv, 
-                participants: data.updatedParticipants || [...conv.participants, data.userId],
-                updatedAt: data.timestamp
-              }
+        setConversations(prev => prev.map(conv =>
+          conv.id === data.conversationId
+            ? {
+              ...conv,
+              participants: data.updatedParticipants || [...conv.participants, data.userId],
+              updatedAt: data.timestamp
+            }
             : conv
         ));
-        
+
         // También actualizar el usuario actual si está en la conversación
         if (currentConversation?.id === data.conversationId) {
           setCurrentConversation(prev => prev ? {
@@ -533,16 +649,16 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
         // 🟡 LOG PARA DEBUGGING - EVENTO group_participants_updated
 
         // ✅ ACTUALIZAR ESTADO LOCAL INMEDIATAMENTE para todos los usuarios
-        setConversations(prev => prev.map(conv => 
-          conv.id === data.conversationId 
-            ? { 
-                ...conv, 
-                participants: data.participants,
-                updatedAt: data.updatedAt
-              }
+        setConversations(prev => prev.map(conv =>
+          conv.id === data.conversationId
+            ? {
+              ...conv,
+              participants: data.participants,
+              updatedAt: data.updatedAt
+            }
             : conv
         ));
-        
+
         // También actualizar el usuario actual si está en la conversación
         if (currentConversation?.id === data.conversationId) {
           setCurrentConversation(prev => prev ? {
@@ -590,12 +706,12 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     };
 
     setupEventListeners();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socketService, currentUser, currentConversation, conversations, isPageVisible, showBrowserNotification, playNotificationSound]);
 
   useEffect(() => {
     if (!socketService || !currentConversation || !currentUser) return;
-    
+
     socketService.joinRoom(currentConversation.id, currentUser.id);
   }, [socketService, currentConversation, currentUser]);
 
@@ -621,8 +737,8 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
   // Efecto para actualizar el título de la pestaña cuando cambien los mensajes no leídos
   useEffect(() => {
     const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0) +
-                        Object.values(groupUnreadCounts).reduce((sum, count) => sum + count, 0);
-    
+      Object.values(groupUnreadCounts).reduce((sum, count) => sum + count, 0);
+
     updatePageTitle(totalUnread);
   }, [unreadCounts, groupUnreadCounts, updatePageTitle]);
 
@@ -651,5 +767,6 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     requestNotificationPermission,
     browserNotificationsEnabled,
     isPageVisible,
+    lastMessageTimestamps,
   };
 }; 

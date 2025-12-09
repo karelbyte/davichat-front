@@ -35,6 +35,8 @@ export interface Conversation {
   updatedAt: string;
   lastMessage?: string;
   lastMessageAt?: string;
+  unreadCount?: number; // Contador de mensajes no leídos desde el backend
+  lastReadAt?: string; // Última vez que el usuario leyó la conversación
 }
 
 export interface FileUploadResponse {

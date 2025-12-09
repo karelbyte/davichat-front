@@ -157,14 +157,6 @@ export class SocketService {
     });
 
     this.socket.on('user_added_to_group', (data) => {
-      // 🔵 LOG PARA DEBUGGING - SOCKET SERVICE
-      console.log('🔵 SOCKET SERVICE: user_added_to_group recibido', {
-        timestamp: new Date().toISOString(),
-        conversationId: data.conversationId,
-        conversationName: data.conversationName,
-        userId: data.userId,
-        addedBy: data.addedBy
-      });
       this.eventListeners.user_added_to_group?.(data);
     });
 
@@ -193,15 +185,6 @@ export class SocketService {
     });
 
     this.socket.on('group_participants_updated', (data) => {
-      // 🟡 LOG PARA DEBUGGING - SOCKET SERVICE
-      console.log('🟡 SOCKET SERVICE: group_participants_updated recibido', {
-        timestamp: new Date().toISOString(),
-        conversationId: data.conversationId,
-        conversationName: data.conversationName,
-        action: data.action,
-        affectedUsers: data.affectedUsers,
-        participantCount: data.participantCount
-      });
       this.eventListeners.group_participants_updated?.(data);
     });
 
@@ -242,7 +225,6 @@ export class SocketService {
       content,
       messageType
     };
-    console.log('Socket sending message:', data);
     this.emit('send_message', data);
   }
 
