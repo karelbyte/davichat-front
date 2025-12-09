@@ -95,6 +95,11 @@ export interface GroupParticipantsUpdated {
   updatedAt: string;
   action: 'add' | 'remove' | 'bulk_update';
   affectedUsers: string[];
+  updatedBy?: string;              // ID del usuario que realizó la acción
+  leftBy?: string;                 // Nombre del usuario que salió
+  ownershipTransferred?: boolean;  // true si el creador salió y se transfirió la propiedad
+  newOwnerId?: string;             // ID del nuevo propietario (si hubo transferencia)
+  newOwnerName?: string;           // Nombre del nuevo propietario (si hubo transferencia)
 }
 
 export interface UserJoinedGroup {
@@ -170,5 +175,35 @@ export interface ReplyReceived {
     name: string;
     avatar?: string;
   };
+}
+
+export interface LeaveGroupSuccess {
+  conversationId: string;
+  conversationName: string;
+  timestamp: string;
+  groupDeleted?: boolean;         // true si el grupo fue eliminado (último usuario)
+  deletedMessagesCount?: number;  // Cantidad de mensajes eliminados (si el grupo fue eliminado)
+}
+
+export interface LeaveGroupError {
+  error: string;
+}
+
+export interface UserLeftGroup {
+  conversationId: string;
+  conversationName: string;
+  userId: string;
+  userName: string;
+  leftBy: string;
+  timestamp: string;
+  ownershipTransferred?: boolean;  // true si el creador salió y se transfirió la propiedad
+  newOwnerId?: string;            // ID del nuevo propietario (si hubo transferencia)
+  newOwnerName?: string;          // Nombre del nuevo propietario (si hubo transferencia)
+}
+
+export interface GroupDeleted {
+  conversationId: string;
+  conversationName: string;
+  timestamp: string;
 }
   

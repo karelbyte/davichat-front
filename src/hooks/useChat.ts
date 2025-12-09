@@ -175,10 +175,15 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       setCurrentConversation(conversation);
       setTypingUsers(new Set());
       loadMessages(conversation.id);
+      
+      // Marcar mensajes como leídos cuando se crea/selecciona la conversación
+      if (socketService) {
+        socketService.markMessagesAsRead(conversation.id, currentUser.id);
+      }
     } catch (error) {
       console.error('Error creating private chat:', error);
     }
-  }, [currentUser, loadMessages]);
+  }, [currentUser, loadMessages, socketService]);
 
   const joinConversation = useCallback((conversation: Conversation) => {
     localStorage.setItem('selectedConversationId', conversation.id);
@@ -186,6 +191,11 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     setTypingUsers(new Set());
 
     loadMessages(conversation.id);
+
+    // Marcar mensajes como leídos cuando se selecciona la conversación
+    if (currentUser && socketService) {
+      socketService.markMessagesAsRead(conversation.id, currentUser.id);
+    }
 
     if (conversation.participants) {
       setUnreadCounts(prev => {
@@ -202,7 +212,7 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     if (conversation.type === 'group') {
       setGroupUnreadCounts(prev => ({ ...prev, [conversation.id]: 0 }));
     }
-  }, [currentUser, loadMessages]);
+  }, [currentUser, loadMessages, socketService]);
 
   const sendMessage = useCallback((content: string, messageType: 'text' | 'file' | 'audio' = 'text') => {
     if (!currentUser || !socketService) return;
@@ -243,6 +253,19 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
 
     socketService.addUserToGroup(currentConversation.id, userId, currentUser.id);
   }, [currentConversation, currentUser, socketService]);
+
+  const leaveGroup = useCallback((conversationId: string) => {
+    if (!currentUser || !socketService) return;
+
+    socketService.leaveGroup(conversationId, currentUser.id);
+  }, [currentUser, socketService]);
+
+  const removeMemberFromGroup = useCallback((conversationId: string, userId: string) => {
+    if (!socketService) return;
+
+    // Usar la misma funcionalidad de leaveGroup pero para otro usuario
+    socketService.leaveGroup(conversationId, userId);
+  }, [socketService]);
 
   const editMessage = useCallback((messageId: string, newContent: string) => {
     if (!currentUser || !socketService) return;
@@ -649,23 +672,47 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
         // 🟡 LOG PARA DEBUGGING - EVENTO group_participants_updated
 
         // ✅ ACTUALIZAR ESTADO LOCAL INMEDIATAMENTE para todos los usuarios
-        setConversations(prev => prev.map(conv =>
-          conv.id === data.conversationId
-            ? {
+        setConversations(prev => prev.map(conv => {
+          if (conv.id === data.conversationId) {
+            const updated = {
               ...conv,
               participants: data.participants,
               updatedAt: data.updatedAt
+            };
+            
+            // Si hubo transferencia de propiedad, actualizar el creador
+            if (data.action === 'remove' && data.ownershipTransferred && data.newOwnerId) {
+              updated.createdBy = data.newOwnerId;
             }
-            : conv
-        ));
+            
+            return updated;
+          }
+          return conv;
+        }));
 
         // También actualizar el usuario actual si está en la conversación
         if (currentConversation?.id === data.conversationId) {
-          setCurrentConversation(prev => prev ? {
-            ...prev,
-            participants: data.participants,
-            updatedAt: data.updatedAt
-          } : null);
+          setCurrentConversation(prev => {
+            if (!prev) return null;
+            
+            const updated = {
+              ...prev,
+              participants: data.participants,
+              updatedAt: data.updatedAt
+            };
+            
+            // Si hubo transferencia de propiedad, actualizar el creador
+            if (data.action === 'remove' && data.ownershipTransferred && data.newOwnerId) {
+              updated.createdBy = data.newOwnerId;
+              
+              // Mostrar notificación de transferencia
+              if (data.newOwnerName) {
+                toast.info(`La propiedad del grupo fue transferida a ${data.newOwnerName}`);
+              }
+            }
+            
+            return updated;
+          });
         }
 
       });
@@ -703,6 +750,113 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
           setMessages(prev => [...prev, replyMessage]);
         }
       });
+
+      socketService.on('leave_group_success', (data) => {
+        // Verificar si el usuario estaba viendo este grupo
+        const wasViewingGroup = currentConversationRef.current?.id === data.conversationId;
+        
+        // Remover grupo de la lista de conversaciones
+        setConversations(prev => prev.filter(conv => conv.id !== data.conversationId));
+        
+        // Si es la conversación actual, limpiar vista
+        if (wasViewingGroup) {
+          setCurrentConversation(null);
+          setMessages([]);
+          localStorage.removeItem('selectedConversationId');
+        }
+        
+        // Limpiar contadores de no leídos
+        setGroupUnreadCounts(prev => {
+          const newCounts = { ...prev };
+          delete newCounts[data.conversationId];
+          return newCounts;
+        });
+        
+        // Mostrar notificación según el caso
+        if (data.groupDeleted) {
+          toast.warning(
+            `El grupo "${data.conversationName}" fue eliminado${data.deletedMessagesCount ? ` (${data.deletedMessagesCount} mensajes eliminados)` : ''}`
+          );
+        } else {
+          toast.info(`Ya no eres miembro del grupo "${data.conversationName}"`);
+        }
+        
+        // Recargar lista de conversaciones
+        loadUsersAndConversations();
+      });
+
+      socketService.on('leave_group_error', (data) => {
+        toast.error(data.error);
+        console.error('Error al salir del grupo:', data.error);
+      });
+
+      socketService.on('user_left_group', (data) => {
+        // Si es el grupo actual, actualizar lista de participantes
+        if (currentConversationRef.current?.id === data.conversationId) {
+          setCurrentConversation(prev => {
+            if (!prev) return null;
+            const updated = {
+              ...prev,
+              participants: prev.participants.filter(p => p !== data.userId)
+            };
+            
+            // Si hubo transferencia de propiedad, actualizar el creador
+            if (data.ownershipTransferred && data.newOwnerId) {
+              updated.createdBy = data.newOwnerId;
+            }
+            
+            return updated;
+          });
+          
+          // Mostrar notificación si hubo transferencia de propiedad
+          if (data.ownershipTransferred && data.newOwnerName) {
+            toast.info(`${data.userName} salió del grupo. ${data.newOwnerName} es ahora el administrador.`);
+          }
+        }
+        
+        // Actualizar conversación en la lista
+        setConversations(prev => prev.map(conv => {
+          if (conv.id === data.conversationId) {
+            const updated = {
+              ...conv,
+              participants: conv.participants.filter(p => p !== data.userId)
+            };
+            
+            // Si hubo transferencia de propiedad, actualizar el creador
+            if (data.ownershipTransferred && data.newOwnerId) {
+              updated.createdBy = data.newOwnerId;
+            }
+            
+            return updated;
+          }
+          return conv;
+        }));
+      });
+
+      socketService.on('group_deleted', (data) => {
+        // Remover grupo de la lista de conversaciones
+        setConversations(prev => prev.filter(conv => conv.id !== data.conversationId));
+        
+        // Si es la conversación actual, limpiar vista
+        if (currentConversationRef.current?.id === data.conversationId) {
+          setCurrentConversation(null);
+          setMessages([]);
+          localStorage.removeItem('selectedConversationId');
+        }
+        
+        // Limpiar contadores de no leídos
+        setGroupUnreadCounts(prev => {
+          const newCounts = { ...prev };
+          delete newCounts[data.conversationId];
+          return newCounts;
+        });
+        
+        // Mostrar notificación
+        toast.warning(`El grupo "${data.conversationName}" fue eliminado`);
+        
+        // Recargar lista de conversaciones
+        loadUsersAndConversations();
+      });
     };
 
     setupEventListeners();
@@ -713,6 +867,8 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     if (!socketService || !currentConversation || !currentUser) return;
 
     socketService.joinRoom(currentConversation.id, currentUser.id);
+    // Marcar mensajes como leídos cuando se une a la conversación
+    socketService.markMessagesAsRead(currentConversation.id, currentUser.id);
   }, [socketService, currentConversation, currentUser]);
 
   useEffect(() => {
@@ -759,6 +915,8 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     stopTyping,
     createGroup,
     addUserToGroup,
+    leaveGroup,
+    removeMemberFromGroup,
     editMessage,
     deleteMessage,
     sendReply,

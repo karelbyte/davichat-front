@@ -9,6 +9,8 @@ import { IconButton } from "../../atoms/IconButton/IconButton";
 import { Modal } from "../../atoms/Modal/Modal";
 import { EditMessageModal } from "../../atoms/EditMessageModal/EditMessageModal";
 import { DeleteMessageModal } from "../../atoms/DeleteMessageModal/DeleteMessageModal";
+import { LeaveGroupModal } from "../../atoms/LeaveGroupModal/LeaveGroupModal";
+import { RemoveMemberModal } from "../../atoms/RemoveMemberModal/RemoveMemberModal";
 import { CreateGroupForm } from "../../molecules/CreateGroupForm/CreateGroupForm";
 import { AddParticipantsForm } from "../../molecules/AddParticipantsForm/AddParticipantsForm";
 import { Header } from "../../organisms/Header/Header";
@@ -19,8 +21,8 @@ import { User, Conversation } from "../../../services/api";
 import { Message } from "../../../services/types";
 import { AiOutlineUserAdd } from "react-icons/ai";
 import { CiSaveDown2 } from "react-icons/ci";
-import { MdDelete } from "react-icons/md";
-import { TbMessage2Minus } from "react-icons/tb";
+import { MdDelete, MdPersonRemove } from "react-icons/md";
+import { TbMessage2Minus, TbLogout } from "react-icons/tb";
 import { toast } from "react-toastify";
 import { FloatingAIButton } from "../../atoms/FloatingAIButton/FloatingAIButton";
 
@@ -71,6 +73,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
     stopTyping,
     createGroup,
     addUserToGroup,
+    leaveGroup,
+    removeMemberFromGroup,
     editMessage,
     deleteMessage,
     sendReply,
@@ -97,6 +101,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
     content: string;
   } | null>(null);
   const [showGroupMembersModal, setShowGroupMembersModal] = useState(false);
+  const [showLeaveGroupModal, setShowLeaveGroupModal] = useState(false);
+  const [showRemoveMemberModal, setShowRemoveMemberModal] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<{ id: string; name: string } | null>(null);
   const [unreadNotifications, setUnreadNotifications] = useState<
     Array<{
       senderId: string;
@@ -192,6 +199,27 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
   const handleConfirmDelete = () => {
     if (deletingMessageId) {
       deleteMessage(deletingMessageId);
+    }
+  };
+
+  const handleLeaveGroup = () => {
+    if (currentConversation && currentConversation.type === "group") {
+      leaveGroup(currentConversation.id);
+    }
+  };
+
+  const handleRemoveMember = () => {
+    if (currentConversation && memberToRemove && currentConversation.type === "group") {
+      removeMemberFromGroup(currentConversation.id, memberToRemove.id);
+      setMemberToRemove(null);
+    }
+  };
+
+  const handleOpenRemoveMemberModal = (participantId: string) => {
+    const participant = users.find((u) => u.id === participantId);
+    if (participant) {
+      setMemberToRemove({ id: participantId, name: participant.name || "Usuario" });
+      setShowRemoveMemberModal(true);
     }
   };
 
@@ -566,12 +594,22 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
                   </div>
                   <div className="flex space-x-2">
                     {currentConversation.type === "group" && (
-                      <IconButton
-                        onClick={() => setShowAddParticipantsModal(true)}
-                        className="text-gray-600 hover:text-gray-800"
-                      >
-                        <AiOutlineUserAdd className="w-5 h-5" />
-                      </IconButton>
+                      <>
+                        <IconButton
+                          onClick={() => setShowAddParticipantsModal(true)}
+                          className="text-gray-600 hover:text-gray-800"
+                          title="Agregar participantes"
+                        >
+                          <AiOutlineUserAdd className="w-5 h-5" />
+                        </IconButton>
+                        <IconButton
+                          onClick={() => setShowLeaveGroupModal(true)}
+                          className="text-gray-600 hover:text-red-600"
+                          title="Abandonar grupo"
+                        >
+                          <TbLogout className="w-5 h-5" />
+                        </IconButton>
+                      </>
                     )}
                   </div>
                 </div>
@@ -735,6 +773,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
         <Modal
           isOpen={showGroupMembersModal}
           onClose={() => setShowGroupMembersModal(false)}
+          className="w-full max-w-2xl"
         >
           <div className="p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">
@@ -769,32 +808,59 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
               ) : (
                 currentConversation.participants.map((participantId) => {
                   const participant = users.find((u) => u.id === participantId);
+                  const isAdmin = currentUser?.id === currentConversation.createdBy;
+                  const isCurrentUser = participantId === currentUser?.id;
+                  const canRemoveMember = isAdmin && !isCurrentUser;
+                  
                   return (
                     <div
                       key={participantId}
-                      className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                     >
-                      <div className="relative">
-                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-                          {participant?.name?.charAt(0)?.toUpperCase() || "U"}
+                      <div className="flex items-center space-x-3 flex-1">
+                        <div className="relative">
+                          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+                            {participant?.name?.charAt(0)?.toUpperCase() || "U"}
+                          </div>
+                          <div
+                            className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${participant?.isOnline
+                              ? "bg-green-500"
+                              : "bg-gray-400"
+                              }`}
+                          ></div>
                         </div>
-                        <div
-                          className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${participant?.isOnline
-                            ? "bg-green-500"
-                            : "bg-gray-400"
-                            }`}
-                        ></div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-800">
+                              {participant?.name || "Usuario desconocido"}
+                            </p>
+                            {isCurrentUser && (
+                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                                Tú
+                              </span>
+                            )}
+                            {isAdmin && participantId === currentConversation.createdBy && (
+                              <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">
+                                Admin
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-500">
+                            {participant?.email
+                              ? truncateEmail(participant.email)
+                              : "Sin email"}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-800">
-                          {participant?.name || "Usuario desconocido"}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {participant?.email
-                            ? truncateEmail(participant.email)
-                            : "Sin email"}
-                        </p>
-                      </div>
+                      {canRemoveMember && (
+                        <IconButton
+                          onClick={() => handleOpenRemoveMemberModal(participantId)}
+                          className="text-gray-600 hover:text-red-600 ml-2"
+                          title="Eliminar miembro del grupo"
+                        >
+                          <MdPersonRemove className="w-5 h-5" />
+                        </IconButton>
+                      )}
                     </div>
                   );
                 })
@@ -811,6 +877,28 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
             </div>
           </div>
         </Modal>
+      )}
+
+      {showLeaveGroupModal && currentConversation && (
+        <LeaveGroupModal
+          isOpen={showLeaveGroupModal}
+          onClose={() => setShowLeaveGroupModal(false)}
+          onConfirm={handleLeaveGroup}
+          groupName={currentConversation.name}
+        />
+      )}
+
+      {showRemoveMemberModal && currentConversation && memberToRemove && (
+        <RemoveMemberModal
+          isOpen={showRemoveMemberModal}
+          onClose={() => {
+            setShowRemoveMemberModal(false);
+            setMemberToRemove(null);
+          }}
+          onConfirm={handleRemoveMember}
+          memberName={memberToRemove.name}
+          groupName={currentConversation.name}
+        />
       )}
 
   <FloatingAIButton onClick={handleFloatingAIClick} />

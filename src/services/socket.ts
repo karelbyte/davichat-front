@@ -1,7 +1,7 @@
 import io, { Socket } from 'socket.io-client';
 
 import { config } from '../config/env';
-import { GroupCreated, Message, UnreadMessageGroup, UnreadMessagePrivate, UserAddedToGroup, UserJoinedGroup, UserConnected, UserDisconnected, UserLeave, MessageEdited, MessageDeleted, EditMessageError, DeleteMessageError, ReplyReceived, ReplyMessage, GroupParticipantsUpdated } from './types';
+import { GroupCreated, Message, UnreadMessageGroup, UnreadMessagePrivate, UserAddedToGroup, UserJoinedGroup, UserConnected, UserDisconnected, UserLeave, MessageEdited, MessageDeleted, EditMessageError, DeleteMessageError, ReplyReceived, ReplyMessage, GroupParticipantsUpdated, LeaveGroupSuccess, LeaveGroupError, UserLeftGroup, GroupDeleted } from './types';
 import { User } from './api';
 
 const SOCKET_URL = config.wsUrl;
@@ -27,6 +27,10 @@ export interface SocketEvents {
   delete_message_error: (data: DeleteMessageError) => void;
   reply_received: (message: ReplyReceived) => void;
   group_participants_updated: (data: GroupParticipantsUpdated) => void;
+  leave_group_success: (data: LeaveGroupSuccess) => void;
+  leave_group_error: (data: LeaveGroupError) => void;
+  user_left_group: (data: UserLeftGroup) => void;
+  group_deleted: (data: GroupDeleted) => void;
 }
 
 // Tipos para los datos de emisión
@@ -73,6 +77,11 @@ export interface AddUserToGroupData {
   conversationId: string;
   userId: string;
   addedBy: string;
+}
+
+export interface LeaveGroupData {
+  conversationId: string;
+  userId: string;
 }
 
 export interface UserJoinData {
@@ -188,6 +197,22 @@ export class SocketService {
       this.eventListeners.group_participants_updated?.(data);
     });
 
+    this.socket.on('leave_group_success', (data) => {
+      this.eventListeners.leave_group_success?.(data);
+    });
+
+    this.socket.on('leave_group_error', (data) => {
+      this.eventListeners.leave_group_error?.(data);
+    });
+
+    this.socket.on('user_left_group', (data) => {
+      this.eventListeners.user_left_group?.(data);
+    });
+
+    this.socket.on('group_deleted', (data) => {
+      this.eventListeners.group_deleted?.(data);
+    });
+
     return this.socket;
   }
 
@@ -262,5 +287,10 @@ export class SocketService {
 
   sendReply(replyData: ReplyMessage): void {
     this.emit('send_reply', replyData);
+  }
+
+  leaveGroup(conversationId: string, userId: string): void {
+    const data: LeaveGroupData = { conversationId, userId };
+    this.emit('leave_group', data);
   }
 } 

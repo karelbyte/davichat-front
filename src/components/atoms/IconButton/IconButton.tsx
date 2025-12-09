@@ -6,6 +6,7 @@ interface IconButtonProps {
   disabled?: boolean;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  title?: string;
 }
 
 export const IconButton: React.FC<IconButtonProps> = ({
@@ -13,7 +14,8 @@ export const IconButton: React.FC<IconButtonProps> = ({
   onClick,
   disabled = false,
   size = 'md',
-  className = ''
+  className = '',
+  title
 }) => {
   const baseClasses = 'rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors hover:bg-gray-100';
   
@@ -31,6 +33,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
       className={`${baseClasses} ${sizeClasses[size]} ${disabledClasses} ${className}`}
       onClick={onClick}
       disabled={disabled}
+      title={title}
     >
       {children}
     </button>
