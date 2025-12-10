@@ -23,25 +23,20 @@ export const FloatingAIButton: React.FC<FloatingAIButtonProps> = ({ onClick }) =
     }
   };
 
-  // Animación de saltito cada 2 minutos
   useEffect(() => {
     const interval = setInterval(() => {
       setIsJumping(true);
-      
-      // Resetear la animación después de 600ms
       setTimeout(() => {
         setIsJumping(false);
       }, 600);
-    }, 30000); // 2 minutos = 120,000ms
-
-    // Limpiar el interval al desmontar el componente
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 
   return (
     <button
       onClick={handleClick}
-      className={`fixed bottom-26 right-6 w-16 h-16 rounded-full border border-red-400 bg-transparent shadow-md shadow-red-400 hover:shadow-red-600 transition-all duration-300 flex items-center justify-center z-50 bg-white ${
+      className={`fixed bottom-26 right-6 w-16 h-16 rounded-full border border-red-400 bg-transparent shadow-md shadow-red-400 hover:shadow-red-600 transition-all duration-300 flex items-center justify-center z-50 ${
         isJumping ? 'animate-bounce' : ''
       }`}
       title="Asistente IA"

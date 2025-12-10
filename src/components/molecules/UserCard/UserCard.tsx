@@ -18,7 +18,6 @@ interface UserCardProps {
   className?: string;
 }
 
-// Función para truncar emails con más de un punto después de la arroba
 const truncateEmail = (email: string): string => {
   const atIndex = email.indexOf('@');
   if (atIndex === -1) return email;

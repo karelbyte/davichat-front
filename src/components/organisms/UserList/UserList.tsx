@@ -48,7 +48,6 @@ export const UserList: React.FC<UserListProps> = ({
   const filteredUsers = users.filter(user => user.id !== currentUserId);
   const groups = conversations.filter(conv => conv.type === 'group');
   
-  // Función para obtener el timestamp del último mensaje
   const getLastMessageTimestamp = (id: string): number => {
     const timestamp = lastMessageTimestamps[id];
     if (timestamp) {
@@ -57,12 +56,11 @@ export const UserList: React.FC<UserListProps> = ({
     return 0;
   };
   
-  // Tipo unificado para items combinados
   type ListItem = 
     | { type: 'user'; data: User }
     | { type: 'group'; data: Conversation };
 
-  // Combinar y ordenar usuarios y grupos juntos por último mensaje
+
   const sortedCombinedList = useMemo(() => {
     const items: ListItem[] = [
       ...filteredUsers.map(user => ({ type: 'user' as const, data: user })),
@@ -73,16 +71,14 @@ export const UserList: React.FC<UserListProps> = ({
       const timestampA = getLastMessageTimestamp(a.data.id);
       const timestampB = getLastMessageTimestamp(b.data.id);
       
-      // Si ambos tienen timestamp, ordenar por timestamp (más reciente primero)
+   
       if (timestampA > 0 && timestampB > 0) {
         return timestampB - timestampA;
       }
       
-      // Si solo uno tiene timestamp, ese va primero
       if (timestampA > 0) return -1;
       if (timestampB > 0) return 1;
       
-      // Si ninguno tiene timestamp, ordenar por nombre/fecha
       if (a.type === 'user' && b.type === 'user') {
         return a.data.name.localeCompare(b.data.name);
       }
@@ -92,12 +88,11 @@ export const UserList: React.FC<UserListProps> = ({
         return dateB - dateA;
       }
       
-      // Si son tipos diferentes sin timestamp, usuarios primero
       return a.type === 'user' ? -1 : 1;
     });
   }, [filteredUsers, groups, lastMessageTimestamps]);
 
-  // Filtrar la lista combinada si hay búsqueda
+
   const filteredResults = useMemo(() => {
     if (!searchTerm.trim()) {
       return sortedCombinedList;

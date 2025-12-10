@@ -38,24 +38,21 @@ export const FileMessage: React.FC<FileMessageProps> = ({
   allMessages = [],
   users = []
 }) => {
-  // Función para verificar si el mensaje se puede eliminar (dentro de 5 minutos)
   const isMessageEditable = (timestamp: string) => {
     const messageTime = new Date(timestamp).getTime();
     const currentTime = new Date().getTime();
     const timeDifference = currentTime - messageTime;
-    const fiveMinutes = 5 * 60 * 1000; // 5 minutos en milisegundos
+    const fiveMinutes = 5 * 60 * 1000;
     return timeDifference <= fiveMinutes;
   };
 
-  // Buscar el mensaje original al que se está respondiendo
   const originalMessage = replyTo && allMessages.length > 0
     ? allMessages.find(m => m.id === replyTo)
     : null;
 
-  // Función para obtener el preview del mensaje original
+
   const getReplyPreview = () => {
     if (originalMessage) {
-      // Si encontramos el mensaje original, mostrar información completa
       const originalSender = users.find(u => u.id === originalMessage.senderId);
       const senderName = originalSender?.name || 'Usuario';
       
@@ -70,7 +67,6 @@ export const FileMessage: React.FC<FileMessageProps> = ({
       }
       return `${senderName}: ${originalMessage.content.substring(0, 50)}${originalMessage.content.length > 50 ? '...' : ''}`;
     }
-    // Fallback al preview del backend si no encontramos el mensaje original
     return replyPreview || 'Mensaje eliminado';
   };
 

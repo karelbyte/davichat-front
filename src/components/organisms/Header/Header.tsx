@@ -68,7 +68,6 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="flex items-center space-x-3">
-          {/* Botón de notificaciones del navegador */}
           {onRequestNotificationPermission && (
             <button
               onClick={onRequestNotificationPermission}

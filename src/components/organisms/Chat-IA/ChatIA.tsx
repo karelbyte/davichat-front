@@ -27,7 +27,6 @@ interface ChatInterfaceProps {
 }
 
 const ChatIA: React.FC<ChatInterfaceProps> = ({ className }) => {
-  // Socket.IO para recibir respuestas en tiempo real
   const SEND_WEBHOOK_URL = process.env.NEXT_PUBLIC_SEND_WEBHOOK_URL as string;
   const generateChatId = () => uuidv4();
   const generateMessageId = () => uuidv4();
@@ -48,7 +47,7 @@ const IA_SOCKET = process.env.NEXT_PUBLIC_IA_SOCKET as string;
   const [currentChatId, setCurrentChatId] = useState<string>(() => generateChatId());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Conexión a Socket.IO al montar el componente
+
   useEffect(() => {
     const socketUrl = IA_SOCKET;
     const newSocket = io(socketUrl, {
@@ -176,7 +175,7 @@ type WindowWithTimeout = Window & { loadingTimeout?: ReturnType<typeof setTimeou
         </div>
       </div>
 
-      {/* Settings Panel */}
+
       {showSettings && (
         <div className="m-4 p-4 bg-secondary/50 border border-border rounded-lg animate-slide-up">
           <h3 className="text-sm font-medium text-gray-800 mb-3">Configuración de Webhooks</h3>
@@ -207,7 +206,7 @@ type WindowWithTimeout = Window & { loadingTimeout?: ReturnType<typeof setTimeou
         </div>
       )}
       
-      {/* Messages Area */}
+  
       <div className="overflow-y-auto" style={{ height: 'calc(100vh - 280px)', scrollbarWidth: 'thin', overscrollBehavior: 'contain' }}>
         <div className="p-4">
           {messages.length === 0 ? (
@@ -265,7 +264,7 @@ type WindowWithTimeout = Window & { loadingTimeout?: ReturnType<typeof setTimeou
         </div>
       </div>
       
-      {/* Input Area */}
+    
       <div className="bg-white border-t border-gray-200 p-4">
         <div className="flex gap-2">
           <Input

@@ -11,12 +11,12 @@ interface AdminPageProps {
   currentUser?: User;
 }
 
-// Tipo extendido para mensajes procesados en el admin
+
 interface ProcessedMessage extends Message {
   senderName: string;
 }
 
-// Interfaz para el modal de confirmación
+
 interface ConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -27,7 +27,7 @@ interface ConfirmModalProps {
   cancelText?: string;
 }
 
-// Componente Modal de Confirmación
+
 const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isOpen,
   onClose,
@@ -78,7 +78,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser }) => {
   const [messages, setMessages] = useState<ProcessedMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Estados para modales de confirmación
+
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     type: 'user' | 'conversation' | 'message' | 'all-messages';
@@ -91,7 +91,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser }) => {
     name: ''
   });
 
-  // Verificar si el usuario es admin
+
   useEffect(() => {
     if (currentUser && !currentUser.roles?.includes('admin')) {
       router.push('/');
@@ -102,7 +102,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser }) => {
   useEffect(() => {
     if (currentUser?.roles?.includes('admin')) {
       loadAdminData();
-      loadMessages(); // Cargar mensajes también
+      loadMessages();
     }
   }, [currentUser]);
 
@@ -112,9 +112,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser }) => {
       if (response.ok) {
         const messagesData = await response.json();
         
-        // Procesar mensajes para mostrar nombres en lugar de IDs de remitente
         const processedMessages: ProcessedMessage[] = messagesData.map((message: Message) => {
-          // Usar el nombre del sender si está disponible, sino buscar en la lista de usuarios
+        
           let senderName = message.sender?.name;
           if (!senderName) {
             const senderUser = users.find(user => user.id === message.senderId);
@@ -123,13 +122,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser }) => {
           
           return {
             ...message,
-            senderName: senderName // Agregar el nombre del remitente
+            senderName: senderName 
           };
         });
         
         setMessages(processedMessages);
         
-        // Actualizar estadísticas con el conteo real de mensajes
         setStats(prevStats => ({
           ...prevStats,
           totalMessages: messagesData.length
@@ -155,12 +153,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser }) => {
       setUsers(usersData);
       setConversations(conversationsData);
       
-      // Calcular estadísticas localmente (como en admin.html)
       setStats(prevStats => ({
         totalUsers: usersData.length,
         onlineUsers: usersData.filter((u: User) => u.isOnline).length,
         totalConversations: conversationsData.length,
-        totalMessages: prevStats.totalMessages // Mantener el conteo de mensajes si ya se cargaron
+        totalMessages: prevStats.totalMessages 
       }));
     } catch (error) {
       toast.error('Error al cargar datos de administración');
@@ -214,7 +211,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser }) => {
     });
   };
 
-  // Función para confirmar la eliminación
+
   const confirmDelete = async () => {
     try {
       switch (confirmModal.type) {
@@ -253,12 +250,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser }) => {
     }
   };
 
-  // Función para cerrar el modal
+  
   const closeConfirmModal = () => {
     setConfirmModal({ isOpen: false, type: 'user', id: '', name: '' });
   };
 
-  // Función para obtener el título del modal según el tipo
+ 
   const getConfirmModalTitle = () => {
     switch (confirmModal.type) {
       case 'user':
@@ -508,7 +505,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser }) => {
           </div>
         </div>
 
-        {/* Gestión de Mensajes */}
         <div className="bg-white rounded-lg shadow mb-8">
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">

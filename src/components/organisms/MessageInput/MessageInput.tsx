@@ -12,7 +12,7 @@ interface MessageInputProps {
   onSendMessage: (content: string, messageType: 'text' | 'file' | 'audio') => void;
   onStartTyping: () => void;
   onStopTyping: () => void;
-  currentConversation: { id: string; type: 'private' | 'group'; name?: string } | null; // Para validar que existe una conversación activa
+  currentConversation: { id: string; type: 'private' | 'group'; name?: string } | null;
   disabled?: boolean;
   className?: string;
   placeholder?: string;
@@ -77,9 +77,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     }
     
     console.log('File upload using localStorage ID:', selectedConversationId);
-    
-    // Subir archivo con los parámetros necesarios
-    // El backend se encarga de emitir el mensaje automáticamente
     try {
       await apiService.uploadFile(file, selectedConversationId, user?.id || '');
     } catch (error) {
@@ -125,8 +122,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     
     try {
       const file = new File([audioBlob], 'audio.wav', { type: 'audio/wav' });
-      // Subir audio con los parámetros necesarios
-      // El backend se encarga de emitir el mensaje automáticamente
       await apiService.uploadFile(file, selectedConversationId, user?.id || '');
     } catch (error) {
       console.error('Error uploading audio:', error);

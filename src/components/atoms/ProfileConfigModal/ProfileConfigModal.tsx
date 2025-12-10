@@ -27,7 +27,6 @@ export const ProfileConfigModal: React.FC<ProfileConfigModalProps> = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Limpiar la URL de previsualización cuando se cierre el modal
   useEffect(() => {
     if (!isOpen) {
       if (previewUrl) {
@@ -45,7 +44,6 @@ export const ProfileConfigModal: React.FC<ProfileConfigModalProps> = ({
     try {
       let avatarUrl = formData.avatar;
       
-      // Si hay un archivo seleccionado, subirlo primero
       if (selectedFile) {
         const uploadFormData = new FormData();
         uploadFormData.append('avatar', selectedFile);
@@ -63,7 +61,6 @@ export const ProfileConfigModal: React.FC<ProfileConfigModalProps> = ({
         avatarUrl = data.avatar;
       }
       
-      // Actualizar el perfil con la nueva información
       await onUpdateProfile({
         ...formData,
         avatar: avatarUrl
@@ -80,7 +77,6 @@ export const ProfileConfigModal: React.FC<ProfileConfigModalProps> = ({
   const handleAvatarUpload = (file: File) => {
     if (!file) return;
     
-    // Solo previsualizar la imagen, no subirla aún
     setSelectedFile(file);
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
@@ -167,8 +163,6 @@ export const ProfileConfigModal: React.FC<ProfileConfigModalProps> = ({
               )}
             </div>
           </div>
-
-          {/* Form Fields */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Nombre
@@ -193,7 +187,6 @@ export const ProfileConfigModal: React.FC<ProfileConfigModalProps> = ({
             />
           </div>
 
-          {/* Action Buttons */}
           <div className="flex space-x-2 pt-4">
             <Button
               type="button"
