@@ -47,14 +47,7 @@ export const UserList: React.FC<UserListProps> = ({
   
   const filteredUsers = users.filter(user => user.id !== currentUserId);
   const groups = conversations.filter(conv => conv.type === 'group');
-  
-  const getLastMessageTimestamp = (id: string): number => {
-    const timestamp = lastMessageTimestamps[id];
-    if (timestamp) {
-      return new Date(timestamp).getTime();
-    }
-    return 0;
-  };
+  const privateConversations = conversations.filter(conv => conv.type === 'private');
   
   type ListItem = 
     | { type: 'user'; data: User }
@@ -62,35 +55,67 @@ export const UserList: React.FC<UserListProps> = ({
 
 
   const sortedCombinedList = useMemo(() => {
+    const getLastMessageTimestamp = (id: string): number => {
+      const timestamp = lastMessageTimestamps[id];
+      if (timestamp) {
+        return new Date(timestamp).getTime();
+      }
+      return 0;
+    };
+
+    const getUserConversation = (userId: string): Conversation | undefined => {
+      return privateConversations.find(conv => 
+        conv.participants.includes(userId) && conv.participants.includes(currentUserId)
+      );
+    };
+
     const items: ListItem[] = [
       ...filteredUsers.map(user => ({ type: 'user' as const, data: user })),
       ...groups.map(group => ({ type: 'group' as const, data: group }))
     ];
 
     return items.sort((a, b) => {
-      const timestampA = getLastMessageTimestamp(a.data.id);
-      const timestampB = getLastMessageTimestamp(b.data.id);
-      
-   
-      if (timestampA > 0 && timestampB > 0) {
-        return timestampB - timestampA;
+      let aConv: Conversation | undefined;
+      let bConv: Conversation | undefined;
+
+      if (a.type === 'user') {
+        aConv = getUserConversation(a.data.id);
+      } else {
+        aConv = a.data;
       }
-      
-      if (timestampA > 0) return -1;
-      if (timestampB > 0) return 1;
-      
-      if (a.type === 'user' && b.type === 'user') {
-        return a.data.name.localeCompare(b.data.name);
+
+      if (b.type === 'user') {
+        bConv = getUserConversation(b.data.id);
+      } else {
+        bConv = b.data;
       }
-      if (a.type === 'group' && b.type === 'group') {
-        const dateA = new Date(a.data.updatedAt || a.data.createdAt).getTime();
-        const dateB = new Date(b.data.updatedAt || b.data.createdAt).getTime();
-        return dateB - dateA;
-      }
+
+      const aUnreadCount = a.type === 'user' 
+        ? (unreadCounts[a.data.id] || 0)
+        : (groupUnreadCounts[a.data.id] || 0);
+      const aConvUnreadCount = aConv?.unreadCount || 0;
+      const aUnread = aUnreadCount > 0 || aConvUnreadCount > 0;
       
-      return a.type === 'user' ? -1 : 1;
+      const bUnreadCount = b.type === 'user'
+        ? (unreadCounts[b.data.id] || 0)
+        : (groupUnreadCounts[b.data.id] || 0);
+      const bConvUnreadCount = bConv?.unreadCount || 0;
+      const bUnread = bUnreadCount > 0 || bConvUnreadCount > 0;
+
+      if (aUnread && !bUnread) return -1;
+      if (!aUnread && bUnread) return 1;
+
+      const aLastRead = aConv?.lastReadAt 
+        ? new Date(aConv.lastReadAt).getTime() 
+        : getLastMessageTimestamp(a.data.id);
+      
+      const bLastRead = bConv?.lastReadAt 
+        ? new Date(bConv.lastReadAt).getTime() 
+        : getLastMessageTimestamp(b.data.id);
+
+      return bLastRead - aLastRead;
     });
-  }, [filteredUsers, groups, lastMessageTimestamps]);
+  }, [filteredUsers, groups, unreadCounts, groupUnreadCounts, lastMessageTimestamps, currentUserId, privateConversations]);
 
 
   const filteredResults = useMemo(() => {
@@ -174,27 +199,37 @@ export const UserList: React.FC<UserListProps> = ({
 
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
         <div className="space-y-2">
-          {isLoading ? (
-            <div className="text-sm text-gray-500 p-4 text-center">
-              Cargando usuarios y grupos...
-            </div>
-          ) : error ? (
-            <div className="text-sm text-red-500 p-4 text-center">
-              <div className="mb-3">{error}</div>
-              {onRetry && (
-                <button
-                  onClick={onRetry}
-                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                >
-                  Reintentar
-                </button>
-              )}
-            </div>
-          ) : filteredResults.length === 0 ? (
-            <div className="text-sm text-gray-500 p-4 text-center">
-              {searchTerm.trim() ? 'No se encontraron resultados' : 'No hay usuarios conectados ni grupos disponibles.'}
-            </div>
-          ) : (
+          {(() => {
+            if (isLoading) {
+              return (
+                <div className="text-sm text-gray-500 p-4 text-center">
+                  Cargando usuarios y grupos...
+                </div>
+              );
+            }
+            if (error) {
+              return (
+                <div className="text-sm text-red-500 p-4 text-center">
+                  <div className="mb-3">{error}</div>
+                  {onRetry && (
+                    <button
+                      onClick={onRetry}
+                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                    >
+                      Reintentar
+                    </button>
+                  )}
+                </div>
+              );
+            }
+            if (filteredResults.length === 0) {
+              return (
+                <div className="text-sm text-gray-500 p-4 text-center">
+                  {searchTerm.trim() ? 'No se encontraron resultados' : 'No hay usuarios conectados ni grupos disponibles.'}
+                </div>
+              );
+            }
+            return (
             <>
               {filteredResults.map(item => {
                 if (item.type === 'user') {
@@ -229,7 +264,8 @@ export const UserList: React.FC<UserListProps> = ({
                 }
               })}
             </>
-          )}
+            );
+          })()}
         </div>
       </div>
     </div>

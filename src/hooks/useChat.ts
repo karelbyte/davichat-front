@@ -85,8 +85,21 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
         avatar: user.avatar ? `${process.env.NEXT_PUBLIC_API_URL}${user.avatar.replace('/api', '')}` : undefined
       }));
 
+      const sortedConversations = [...conversationsData].sort((a, b) => {
+        const aUnread = (a.unreadCount ?? 0) > 0;
+        const bUnread = (b.unreadCount ?? 0) > 0;
+
+        if (aUnread && !bUnread) return -1;
+        if (!aUnread && bUnread) return 1;
+
+        const aLastRead = a.lastReadAt ? new Date(a.lastReadAt).getTime() : 0;
+        const bLastRead = b.lastReadAt ? new Date(b.lastReadAt).getTime() : 0;
+
+        return bLastRead - aLastRead;
+      });
+
       setUsers(usersWithAvatars);
-      setConversations(conversationsData);
+      setConversations(sortedConversations);
 
       if (currentUser) {
         setUnreadCounts(prev => {
