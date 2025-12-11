@@ -255,11 +255,45 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     socketService.leaveGroup(conversationId, currentUser.id);
   }, [currentUser, socketService]);
 
-  const removeMemberFromGroup = useCallback((conversationId: string, userId: string) => {
-    if (!socketService) return;
+  const removeMemberFromGroup = useCallback(async (conversationId: string, userId: string) => {
+    if (!currentUser) return;
 
-    socketService.leaveGroup(conversationId, userId);
-  }, [socketService]);
+    const conversation = conversations.find(c => c.id === conversationId);
+    if (!conversation || conversation.type !== 'group') return;
+
+    const isAdmin = conversation.createdBy === currentUser.id;
+    
+    try {
+      if (isAdmin && userId !== currentUser.id) {
+        await apiService.removeParticipant(conversationId, userId, currentUser.id);
+      } else {
+        await apiService.removeParticipant(conversationId, userId);
+      }
+
+      setConversations(prev => prev.map(conv => {
+        if (conv.id === conversationId) {
+          return {
+            ...conv,
+            participants: conv.participants.filter(p => p !== userId)
+          };
+        }
+        return conv;
+      }));
+
+      if (currentConversationRef.current?.id === conversationId) {
+        setCurrentConversation(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            participants: prev.participants.filter(p => p !== userId)
+          };
+        });
+      }
+    } catch (error) {
+      console.error('Error removing participant:', error);
+      throw error;
+    }
+  }, [currentUser, conversations]);
 
   const editMessage = useCallback((messageId: string, newContent: string) => {
     if (!currentUser || !socketService) return;
@@ -753,6 +787,32 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
           }
           return conv;
         }));
+      });
+
+      socketService.on('user_removed_from_group', (data) => {
+        if (data.userId === currentUser?.id) {
+          const wasViewingGroup = currentConversationRef.current?.id === data.conversationId;
+          
+          setConversations(prev => prev.filter(conv => conv.id !== data.conversationId));
+          
+          if (wasViewingGroup) {
+            setCurrentConversation(null);
+            setMessages([]);
+            localStorage.removeItem('selectedConversationId');
+          }
+          
+          setGroupUnreadCounts(prev => {
+            const newCounts = { ...prev };
+            delete newCounts[data.conversationId];
+            return newCounts;
+          });
+          
+          if (data.removedBy === data.userId) {
+            toast.info(`Saliste del grupo "${data.conversationName}"`);
+          } else {
+            toast.warning(`Fuiste eliminado del grupo "${data.conversationName}" por ${data.removedByName}`);
+          }
+        }
       });
 
       socketService.on('group_deleted', (data) => {

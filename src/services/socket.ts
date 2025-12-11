@@ -1,7 +1,7 @@
 import io, { Socket } from 'socket.io-client';
 
 import { config } from '../config/env';
-import { GroupCreated, Message, UnreadMessageGroup, UnreadMessagePrivate, UserAddedToGroup, UserJoinedGroup, UserConnected, UserDisconnected, UserLeave, MessageEdited, MessageDeleted, EditMessageError, DeleteMessageError, ReplyReceived, ReplyMessage, GroupParticipantsUpdated, LeaveGroupSuccess, LeaveGroupError, UserLeftGroup, GroupDeleted } from './types';
+import { GroupCreated, Message, UnreadMessageGroup, UnreadMessagePrivate, UserAddedToGroup, UserJoinedGroup, UserConnected, UserDisconnected, UserLeave, MessageEdited, MessageDeleted, EditMessageError, DeleteMessageError, ReplyReceived, ReplyMessage, GroupParticipantsUpdated, LeaveGroupSuccess, LeaveGroupError, UserLeftGroup, UserRemovedFromGroup, GroupDeleted } from './types';
 import { User } from './api';
 
 const SOCKET_URL = config.wsUrl;
@@ -30,6 +30,7 @@ export interface SocketEvents {
   leave_group_success: (data: LeaveGroupSuccess) => void;
   leave_group_error: (data: LeaveGroupError) => void;
   user_left_group: (data: UserLeftGroup) => void;
+  user_removed_from_group: (data: UserRemovedFromGroup) => void;
   group_deleted: (data: GroupDeleted) => void;
 }
 
@@ -207,6 +208,10 @@ export class SocketService {
 
     this.socket.on('user_left_group', (data) => {
       this.eventListeners.user_left_group?.(data);
+    });
+
+    this.socket.on('user_removed_from_group', (data) => {
+      this.eventListeners.user_removed_from_group?.(data);
     });
 
     this.socket.on('group_deleted', (data) => {

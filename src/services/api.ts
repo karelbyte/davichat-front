@@ -73,6 +73,15 @@ export const apiService = {
     return response.data;
   },
 
+  async removeParticipant(conversationId: string, userId: string, removedBy?: string): Promise<{ success: boolean }> {
+    const url = `/conversations/${conversationId}/participants/${userId}`;
+    const config = removedBy 
+      ? { params: { removedBy } }
+      : {};
+    const response = await api.delete(url, config);
+    return response.data;
+  },
+
   async getUserConversations(userId: string): Promise<Conversation[]> {
     const response = await api.get(`/conversations/user/${userId}`);
     return response.data;

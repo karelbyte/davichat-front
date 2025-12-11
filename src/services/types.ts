@@ -201,6 +201,16 @@ export interface UserLeftGroup {
   newOwnerName?: string;          // Nombre del nuevo propietario (si hubo transferencia)
 }
 
+export interface UserRemovedFromGroup {
+  conversationId: string;
+  conversationName: string;
+  userId: string;
+  userName: string;
+  removedBy: string;
+  removedByName: string;
+  timestamp: string;
+}
+
 export interface GroupDeleted {
   conversationId: string;
   conversationName: string;

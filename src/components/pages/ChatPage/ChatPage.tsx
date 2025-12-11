@@ -208,10 +208,14 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
     }
   };
 
-  const handleRemoveMember = () => {
+  const handleRemoveMember = async () => {
     if (currentConversation && memberToRemove && currentConversation.type === "group") {
-      removeMemberFromGroup(currentConversation.id, memberToRemove.id);
-      setMemberToRemove(null);
+      try {
+        await removeMemberFromGroup(currentConversation.id, memberToRemove.id);
+        setMemberToRemove(null);
+      } catch (error) {
+        console.error('Error removing member:', error);
+      }
     }
   };
 
