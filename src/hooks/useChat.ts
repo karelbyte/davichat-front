@@ -167,7 +167,7 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       setTypingUsers(new Set());
       loadMessages(conversation.id);
       
-      if (socketService) {
+      if (socketService && (conversation.unreadCount || 0) > 0) {
         socketService.markMessagesAsRead(conversation.id, currentUser.id);
       }
     } catch (error) {
@@ -183,25 +183,31 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     loadMessages(conversation.id);
 
     if (currentUser && socketService) {
-      socketService.markMessagesAsRead(conversation.id, currentUser.id);
+      let hasUnread = false;
+
+      if (conversation.type === 'private') {
+        const otherParticipant = conversation.participants.find(p => p !== currentUser.id);
+        if (otherParticipant) {
+          hasUnread = (unreadCounts[otherParticipant] || 0) > 0 || (conversation.unreadCount || 0) > 0;
+        }
+      } else if (conversation.type === 'group') {
+        hasUnread = (groupUnreadCounts[conversation.id] || 0) > 0 || (conversation.unreadCount || 0) > 0;
+      }
+
+      if (hasUnread) {
+        socketService.markMessagesAsRead(conversation.id, currentUser.id);
+      }
     }
 
-    if (conversation.participants) {
-      setUnreadCounts(prev => {
-        const newCounts = { ...prev };
-        conversation.participants.forEach(participantId => {
-          if (participantId !== currentUser?.id) {
-            newCounts[participantId] = 0;
-          }
-        });
-        return newCounts;
-      });
-    }
-
-    if (conversation.type === 'group') {
+    if (conversation.type === 'private') {
+      const otherParticipant = conversation.participants.find(p => p !== currentUser?.id);
+      if (otherParticipant) {
+        setUnreadCounts(prev => ({ ...prev, [otherParticipant]: 0 }));
+      }
+    } else if (conversation.type === 'group') {
       setGroupUnreadCounts(prev => ({ ...prev, [conversation.id]: 0 }));
     }
-  }, [currentUser, loadMessages, socketService]);
+  }, [currentUser, loadMessages, socketService, unreadCounts, groupUnreadCounts]);
 
   const sendMessage = useCallback((content: string, messageType: 'text' | 'file' | 'audio' = 'text') => {
     if (!currentUser || !socketService) return;
@@ -778,8 +784,22 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     if (!socketService || !currentConversation || !currentUser) return;
 
     socketService.joinRoom(currentConversation.id, currentUser.id);
-    socketService.markMessagesAsRead(currentConversation.id, currentUser.id);
-  }, [socketService, currentConversation, currentUser]);
+
+    let hasUnread = false;
+
+    if (currentConversation.type === 'private') {
+      const otherParticipant = currentConversation.participants.find(p => p !== currentUser.id);
+      if (otherParticipant) {
+        hasUnread = (unreadCounts[otherParticipant] || 0) > 0 || (currentConversation.unreadCount || 0) > 0;
+      }
+    } else if (currentConversation.type === 'group') {
+      hasUnread = (groupUnreadCounts[currentConversation.id] || 0) > 0 || (currentConversation.unreadCount || 0) > 0;
+    }
+
+    if (hasUnread) {
+      socketService.markMessagesAsRead(currentConversation.id, currentUser.id);
+    }
+  }, [socketService, currentConversation, currentUser, unreadCounts, groupUnreadCounts]);
 
   useEffect(() => {
     loadUsersAndConversations();
