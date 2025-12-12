@@ -170,25 +170,48 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       }
 
       if (hasUnread) {
-        const updatedConversation = {
-          ...conversation,
-          lastReadAt: now,
-          unreadCount: 0
-        };
-
         flushSync(() => {
-          setCurrentConversation(updatedConversation);
-          setConversations(prev => prev.map(conv => {
-            if (conv.id === conversation.id) {
-              return {
-                ...conv,
-                lastReadAt: now,
-                unreadCount: 0
-              };
-            }
-            return conv;
-          }));
-          setUnreadCounts(prev => ({ ...prev, [otherUserId]: 0 }));
+          setConversations(prev => {
+            const otherUnreadCount = prev.reduce((count, conv) => {
+              if (conv.id === conversation.id) return count;
+              if (conv.type === 'private') {
+                const otherPart = conv.participants.find(p => p !== currentUser?.id);
+                if (otherPart) {
+                  const hasUnreadConv = (unreadCounts[otherPart] || 0) > 0 || (conv.unreadCount || 0) > 0;
+                  if (hasUnreadConv) return count + 1;
+                }
+              } else if (conv.type === 'group') {
+                const hasUnreadConv = (groupUnreadCounts[conv.id] || 0) > 0 || (conv.unreadCount || 0) > 0;
+                if (hasUnreadConv) return count + 1;
+              }
+              return count;
+            }, 0);
+
+            const shouldUpdateLastRead = otherUnreadCount === 0;
+
+            const updated = prev.map(conv => {
+              if (conv.id === conversation.id) {
+                return {
+                  ...conv,
+                  lastReadAt: shouldUpdateLastRead ? now : conv.lastReadAt,
+                  unreadCount: 0
+                };
+              }
+              return conv;
+            });
+
+            const updatedConversation = updated.find(c => c.id === conversation.id) || conversation;
+
+            setCurrentConversation({
+              ...updatedConversation,
+              lastReadAt: shouldUpdateLastRead ? now : updatedConversation.lastReadAt,
+              unreadCount: 0
+            });
+
+            setUnreadCounts(prev => ({ ...prev, [otherUserId]: 0 }));
+
+            return updated;
+          });
         });
       } else {
         setCurrentConversation(conversation);
@@ -225,30 +248,52 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
     }
 
     if (hasUnread) {
-      const updatedConversation = {
-        ...conversation,
-        lastReadAt: now,
-        unreadCount: 0
-      };
-
       flushSync(() => {
-        setCurrentConversation(updatedConversation);
-        setConversations(prev => prev.map(conv => {
-          if (conv.id === conversation.id) {
-            return {
-              ...conv,
-              lastReadAt: now,
-              unreadCount: 0
-            };
-          }
-          return conv;
-        }));
+        setConversations(prev => {
+          const otherUnreadCount = prev.reduce((count, conv) => {
+            if (conv.id === conversation.id) return count;
+            if (conv.type === 'private') {
+              const otherPart = conv.participants.find(p => p !== currentUser?.id);
+              if (otherPart) {
+                const hasUnreadConv = (unreadCounts[otherPart] || 0) > 0 || (conv.unreadCount || 0) > 0;
+                if (hasUnreadConv) return count + 1;
+              }
+            } else if (conv.type === 'group') {
+              const hasUnreadConv = (groupUnreadCounts[conv.id] || 0) > 0 || (conv.unreadCount || 0) > 0;
+              if (hasUnreadConv) return count + 1;
+            }
+            return count;
+          }, 0);
 
-        if (conversation.type === 'private' && otherParticipant) {
-          setUnreadCounts(prev => ({ ...prev, [otherParticipant!]: 0 }));
-        } else if (conversation.type === 'group') {
-          setGroupUnreadCounts(prev => ({ ...prev, [conversation.id]: 0 }));
-        }
+          const shouldUpdateLastRead = otherUnreadCount === 0;
+
+          const updated = prev.map(conv => {
+            if (conv.id === conversation.id) {
+              return {
+                ...conv,
+                lastReadAt: shouldUpdateLastRead ? now : conv.lastReadAt,
+                unreadCount: 0
+              };
+            }
+            return conv;
+          });
+
+          const updatedConversation = updated.find(c => c.id === conversation.id) || conversation;
+
+          setCurrentConversation({
+            ...updatedConversation,
+            lastReadAt: shouldUpdateLastRead ? now : updatedConversation.lastReadAt,
+            unreadCount: 0
+          });
+
+          if (conversation.type === 'private' && otherParticipant) {
+            setUnreadCounts(prev => ({ ...prev, [otherParticipant!]: 0 }));
+          } else if (conversation.type === 'group') {
+            setGroupUnreadCounts(prev => ({ ...prev, [conversation.id]: 0 }));
+          }
+
+          return updated;
+        });
       });
     } else {
       setCurrentConversation(conversation);
