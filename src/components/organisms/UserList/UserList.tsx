@@ -46,8 +46,14 @@ export const UserList: React.FC<UserListProps> = ({
   const selectedElementRef = useRef<HTMLDivElement>(null);
   
   const filteredUsers = users.filter(user => user.id !== currentUserId);
-  const groups = conversations.filter(conv => conv.type === 'group');
-  const privateConversations = conversations.filter(conv => conv.type === 'private');
+  
+  const groups = useMemo(() => {
+    return conversations.filter(conv => conv.type === 'group');
+  }, [conversations]);
+  
+  const privateConversations = useMemo(() => {
+    return conversations.filter(conv => conv.type === 'private');
+  }, [conversations]);
   
   type ListItem = 
     | { type: 'user'; data: User }
@@ -202,31 +208,31 @@ export const UserList: React.FC<UserListProps> = ({
           {(() => {
             if (isLoading) {
               return (
-                <div className="text-sm text-gray-500 p-4 text-center">
-                  Cargando usuarios y grupos...
-                </div>
+            <div className="text-sm text-gray-500 p-4 text-center">
+              Cargando usuarios y grupos...
+            </div>
               );
             }
             if (error) {
               return (
-                <div className="text-sm text-red-500 p-4 text-center">
-                  <div className="mb-3">{error}</div>
-                  {onRetry && (
-                    <button
-                      onClick={onRetry}
-                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                    >
-                      Reintentar
-                    </button>
-                  )}
-                </div>
+            <div className="text-sm text-red-500 p-4 text-center">
+              <div className="mb-3">{error}</div>
+              {onRetry && (
+                <button
+                  onClick={onRetry}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                >
+                  Reintentar
+                </button>
+              )}
+            </div>
               );
             }
             if (filteredResults.length === 0) {
               return (
-                <div className="text-sm text-gray-500 p-4 text-center">
-                  {searchTerm.trim() ? 'No se encontraron resultados' : 'No hay usuarios conectados ni grupos disponibles.'}
-                </div>
+            <div className="text-sm text-gray-500 p-4 text-center">
+              {searchTerm.trim() ? 'No se encontraron resultados' : 'No hay usuarios conectados ni grupos disponibles.'}
+            </div>
               );
             }
             return (

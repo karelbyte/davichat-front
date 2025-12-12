@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { apiService, User, Conversation } from '../services/api';
 import { Message } from '../services/types';
 import { SocketService } from '../services/socket';
@@ -161,52 +162,99 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
         createdBy: currentUser.id
       });
 
-      setUnreadCounts(prev => ({ ...prev, [otherUserId]: 0 }));
-      localStorage.setItem('selectedConversationId', conversation.id);
-      setCurrentConversation(conversation);
-      setTypingUsers(new Set());
-      loadMessages(conversation.id);
-      
-      if (socketService && (conversation.unreadCount || 0) > 0) {
+      const hasUnread = (unreadCounts[otherUserId] || 0) > 0 || (conversation.unreadCount || 0) > 0;
+      const now = new Date().toISOString();
+
+      if (hasUnread && socketService) {
         socketService.markMessagesAsRead(conversation.id, currentUser.id);
-      }
-    } catch (error) {
-      console.error('Error creating private chat:', error);
-    }
-  }, [currentUser, loadMessages, socketService]);
-
-  const joinConversation = useCallback((conversation: Conversation) => {
-    localStorage.setItem('selectedConversationId', conversation.id);
-    setCurrentConversation(conversation);
-    setTypingUsers(new Set());
-
-    loadMessages(conversation.id);
-
-    if (currentUser && socketService) {
-      let hasUnread = false;
-
-      if (conversation.type === 'private') {
-        const otherParticipant = conversation.participants.find(p => p !== currentUser.id);
-        if (otherParticipant) {
-          hasUnread = (unreadCounts[otherParticipant] || 0) > 0 || (conversation.unreadCount || 0) > 0;
-        }
-      } else if (conversation.type === 'group') {
-        hasUnread = (groupUnreadCounts[conversation.id] || 0) > 0 || (conversation.unreadCount || 0) > 0;
       }
 
       if (hasUnread) {
-        socketService.markMessagesAsRead(conversation.id, currentUser.id);
+        const updatedConversation = {
+          ...conversation,
+          lastReadAt: now,
+          unreadCount: 0
+        };
+
+        flushSync(() => {
+          setCurrentConversation(updatedConversation);
+          setConversations(prev => prev.map(conv => {
+            if (conv.id === conversation.id) {
+              return {
+                ...conv,
+                lastReadAt: now,
+                unreadCount: 0
+              };
+            }
+            return conv;
+          }));
+          setUnreadCounts(prev => ({ ...prev, [otherUserId]: 0 }));
+        });
+      } else {
+        setCurrentConversation(conversation);
+        setUnreadCounts(prev => ({ ...prev, [otherUserId]: 0 }));
       }
+
+      localStorage.setItem('selectedConversationId', conversation.id);
+      setTypingUsers(new Set());
+      loadMessages(conversation.id);
+    } catch (error) {
+      console.error('Error creating private chat:', error);
     }
+  }, [currentUser, loadMessages, socketService, unreadCounts]);
+
+  const joinConversation = useCallback((conversation: Conversation) => {
+    localStorage.setItem('selectedConversationId', conversation.id);
+    setTypingUsers(new Set());
+
+    const now = new Date().toISOString();
+    let hasUnread = false;
+    let otherParticipant: string | undefined;
 
     if (conversation.type === 'private') {
-      const otherParticipant = conversation.participants.find(p => p !== currentUser?.id);
+      otherParticipant = conversation.participants.find(p => p !== currentUser?.id);
       if (otherParticipant) {
-        setUnreadCounts(prev => ({ ...prev, [otherParticipant]: 0 }));
+        hasUnread = (unreadCounts[otherParticipant] || 0) > 0 || (conversation.unreadCount || 0) > 0;
       }
     } else if (conversation.type === 'group') {
-      setGroupUnreadCounts(prev => ({ ...prev, [conversation.id]: 0 }));
+      hasUnread = (groupUnreadCounts[conversation.id] || 0) > 0 || (conversation.unreadCount || 0) > 0;
     }
+
+    if (hasUnread && currentUser && socketService) {
+      socketService.markMessagesAsRead(conversation.id, currentUser.id);
+    }
+
+    if (hasUnread) {
+      const updatedConversation = {
+        ...conversation,
+        lastReadAt: now,
+        unreadCount: 0
+      };
+
+      flushSync(() => {
+        setCurrentConversation(updatedConversation);
+        setConversations(prev => prev.map(conv => {
+          if (conv.id === conversation.id) {
+            return {
+              ...conv,
+              lastReadAt: now,
+              unreadCount: 0
+            };
+          }
+          return conv;
+        }));
+
+        if (conversation.type === 'private' && otherParticipant) {
+          setUnreadCounts(prev => ({ ...prev, [otherParticipant!]: 0 }));
+        } else if (conversation.type === 'group') {
+          setGroupUnreadCounts(prev => ({ ...prev, [conversation.id]: 0 }));
+        }
+      });
+    } else {
+      setCurrentConversation(conversation);
+    }
+
+    loadMessages(conversation.id);
   }, [currentUser, loadMessages, socketService, unreadCounts, groupUnreadCounts]);
 
   const sendMessage = useCallback((content: string, messageType: 'text' | 'file' | 'audio' = 'text') => {
@@ -455,6 +503,25 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       socketService.on('message_received', (message) => {
         if (currentConversation && message.conversationId === currentConversation.id) {
           setMessages(prev => [...prev, message]);
+          
+          if (message.senderId !== currentUser?.id && isPageVisible && socketService) {
+            console.log('[message_received] Emitiendo evento markMessagesAsRead:', {
+              conversationId: message.conversationId,
+              userId: currentUser.id,
+              messageId: message.id,
+              senderId: message.senderId
+            });
+            socketService.markMessagesAsRead(message.conversationId, currentUser.id);
+            
+            if (currentConversation.type === 'private') {
+              const otherParticipant = currentConversation.participants.find(p => p !== currentUser?.id);
+              if (otherParticipant) {
+                setUnreadCounts(prev => ({ ...prev, [otherParticipant]: 0 }));
+              }
+            } else if (currentConversation.type === 'group') {
+              setGroupUnreadCounts(prev => ({ ...prev, [message.conversationId]: 0 }));
+            }
+          }
         }
 
         if (message.senderId !== currentUser?.id && !isPageVisible) {
@@ -581,6 +648,80 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
             ...prev,
             [data.conversationId]: data.timestamp
           }));
+        }
+      });
+
+      socketService.on('messages_marked_as_read', (data) => {
+        if (data.userId === currentUser?.id) {
+          setConversations(prev => {
+            const conversation = prev.find(c => c.id === data.conversationId);
+            if (conversation) {
+              const hasUnread = conversation.type === 'private'
+                ? (unreadCounts[conversation.participants.find(p => p !== currentUser.id) || ''] || 0) > 0 || (conversation.unreadCount || 0) > 0
+                : (groupUnreadCounts[data.conversationId] || 0) > 0 || (conversation.unreadCount || 0) > 0;
+
+              if (hasUnread) {
+                if (conversation.type === 'private') {
+                  const otherParticipant = conversation.participants.find(p => p !== currentUser.id);
+                  if (otherParticipant) {
+                    setUnreadCounts(prevCounts => ({ ...prevCounts, [otherParticipant]: 0 }));
+                  }
+                } else if (conversation.type === 'group') {
+                  setGroupUnreadCounts(prevCounts => ({ ...prevCounts, [data.conversationId]: 0 }));
+                }
+                
+                return prev.map(conv => {
+                  if (conv.id === data.conversationId) {
+                    const now = new Date().toISOString();
+                    const currentLastRead = conv.lastReadAt ? new Date(conv.lastReadAt).getTime() : 0;
+                    const newLastRead = new Date(now).getTime();
+                    
+                    if (!conv.lastReadAt || (newLastRead - currentLastRead > 5000)) {
+                      return {
+                        ...conv,
+                        lastReadAt: now,
+                        unreadCount: 0
+                      };
+                    }
+                    return {
+                      ...conv,
+                      unreadCount: 0
+                    };
+                  }
+                  return conv;
+                });
+              }
+            }
+            return prev;
+          });
+          
+          if (currentConversationRef.current?.id === data.conversationId) {
+            setCurrentConversation(prev => {
+              if (!prev || prev.id !== data.conversationId) return prev;
+              const hasUnread = prev.type === 'private'
+                ? (unreadCounts[prev.participants.find(p => p !== currentUser.id) || ''] || 0) > 0 || (prev.unreadCount || 0) > 0
+                : (groupUnreadCounts[data.conversationId] || 0) > 0 || (prev.unreadCount || 0) > 0;
+
+              if (hasUnread) {
+                const now = new Date().toISOString();
+                const currentLastRead = prev.lastReadAt ? new Date(prev.lastReadAt).getTime() : 0;
+                const newLastRead = new Date(now).getTime();
+                
+                if (!prev.lastReadAt || (newLastRead - currentLastRead > 5000)) {
+                  return {
+                    ...prev,
+                    lastReadAt: now,
+                    unreadCount: 0
+                  };
+                }
+                return {
+                  ...prev,
+                  unreadCount: 0
+                };
+              }
+              return prev;
+            });
+          }
         }
       });
 
@@ -860,6 +1001,25 @@ export const useChat = (currentUser: User | null, socketService: SocketService |
       socketService.markMessagesAsRead(currentConversation.id, currentUser.id);
     }
   }, [socketService, currentConversation, currentUser, unreadCounts, groupUnreadCounts]);
+
+  useEffect(() => {
+    if (!socketService || !currentConversation || !currentUser || !isPageVisible) return;
+
+    const markAsReadInterval = setInterval(() => {
+      const activeConv = currentConversationRef.current;
+      if (activeConv && activeConv.id === currentConversation.id && isPageVisible && socketService) {
+        console.log('[Interval] Emitiendo evento markMessagesAsRead:', {
+          conversationId: currentConversation.id,
+          userId: currentUser.id,
+          conversationName: currentConversation.name || currentConversation.id,
+          type: currentConversation.type
+        });
+        socketService.markMessagesAsRead(currentConversation.id, currentUser.id);
+      }
+    }, 1000);
+
+    return () => clearInterval(markAsReadInterval);
+  }, [socketService, currentConversation, currentUser, isPageVisible]);
 
   useEffect(() => {
     loadUsersAndConversations();

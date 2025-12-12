@@ -212,7 +212,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
     if (currentConversation && memberToRemove && currentConversation.type === "group") {
       try {
         await removeMemberFromGroup(currentConversation.id, memberToRemove.id);
-        setMemberToRemove(null);
+      setMemberToRemove(null);
       } catch (error) {
         console.error('Error removing member:', error);
       }
@@ -814,6 +814,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
                   const participant = users.find((u) => u.id === participantId);
                   const isAdmin = currentUser?.id === currentConversation.createdBy;
                   const isCurrentUser = participantId === currentUser?.id;
+                  const isGroupAdmin = participantId === currentConversation.createdBy;
                   const canRemoveMember = isAdmin && !isCurrentUser;
                   
                   return (
@@ -843,7 +844,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ currentUser, onUpdateUser })
                                 Tú
                               </span>
                             )}
-                            {isAdmin && participantId === currentConversation.createdBy && (
+                            {isGroupAdmin && (
                               <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">
                                 Admin
                               </span>
